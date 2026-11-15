@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { SUN, PLANETS, MOON } from './data.js';
+import { SUN, PLANETS, MOON, MOONS, BELTS } from './data.js';
 import { planetTexture, sunTexture, glowTexture, ringTexture } from './textures.js';
 import {
   DEG, J2000_MS, AU_KM, periodDays, positionAt, positionFromE, positionAtMeanAnomaly, orbitalSpeed,
@@ -64,9 +64,17 @@ const bodyRadius = (km) => state.sizeMul * Math.sqrt(km / 6371);
 // ---------------------------------------------------------------- renderer
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
 stage.appendChild(renderer.domElement);
+// If the graphics chip resets (it can on laptops when memory runs low), the map would go
+// blank. Ask the browser to restore it, and reload the page if it does not come back.
+renderer.domElement.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  window.reportError?.(new Error('The graphics chip reset. Restoring the map…'));
+  setTimeout(() => { if (renderer.getContext().isContextLost()) location.reload(); }, 2500);
+});
+renderer.domElement.addEventListener('webglcontextrestored', () => location.reload());
 
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -76,7 +84,7 @@ stage.appendChild(labelRenderer.domElement);
 const scene = new THREE.Scene();
 
 // Two cameras: perspective for 3D, orthographic top-down for 2D.
-const persp = new THREE.PerspectiveCamera(state.fov, window.innerWidth / window.innerHeight, 0.01, 60000);
+const persp = new THREE.PerspectiveCamera(state.fov, (window.innerWidth || 1) / (window.innerHeight || 1), 0.01, 60000);
 persp.position.set(0, 150, 240);
 const START_DIR = persp.position.clone().normalize(); // the opening camera angle, for Reset
 
@@ -86,7 +94,7 @@ ortho.position.set(0, 10000, 0);
 
 function updateOrthoFrustum() {
   const h = (ORTHO_BASE * state.fov) / 60;
-  const a = window.innerWidth / window.innerHeight;
+  const a = (window.innerWidth || 1) / (window.innerHeight || 1);
   ortho.left = (-h * a) / 2;
   ortho.right = (h * a) / 2;
   ortho.top = h / 2;
@@ -233,19 +241,90 @@ for (const p of PLANETS) {
   register(body);
 }
 
-// Moon (child of Earth's group; its distance is exaggerated to stay visible)
+// Moons. Each is a child of its planet's group, on a circular orbit in the planet's
+// equatorial plane (Earth's Moon: 5.1° to the ecliptic). Their distances from the
+// planet are compressed (square root of the real one) so they stay visible.
 const earth = byName.get('Earth');
-const moonBody = (() => {
+const moonBodies = [];
+const circleGeo = new THREE.BufferGeometry().setFromPoints(
+  Array.from({ length: 129 }, (_, k) => new THREE.Vector3(Math.cos((k / 128) * Math.PI * 2), 0, -Math.sin((k / 128) * Math.PI * 2))));
+const ALL_MOONS = [
+  { ...MOON, parent: 'Earth', aKm: 384400, period: MOON.periodDays, incl: MOON.inclination, L0: MOON.L0 },
+  ...MOONS,
+];
+ALL_MOONS.forEach((md, k) => {
+  const host = byName.get(md.parent);
+  if (!host) return;
+  const plane = new THREE.Group();
+  plane.rotation.z = (md.incl ?? host.data.tilt ?? 0) * DEG;
+  host.group.add(plane);
   const group = new THREE.Group();
-  earth.group.add(group);
-  const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial({ map: planetTexture(MOON.texture), roughness: 1 }));
+  plane.add(group);
+  const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial({ map: planetTexture(md.texture), roughness: 1 }));
   group.add(mesh);
-  const label = makeLabel('Moon', 'Moon');
+  const label = makeLabel(md.name, md.name);
+  label.element.classList.add('moon-label');
   group.add(label);
-  const body = { data: MOON, kind: 'moon', group, mesh, label, radius: () => bodyRadius(MOON.radiusKm) };
+  const orbitRing = new THREE.LineLoop(circleGeo, new THREE.LineBasicMaterial({ color: md.color, transparent: true, opacity: 0.22, depthWrite: false }));
+  plane.add(orbitRing);
+  const body = {
+    data: md, kind: 'moon', host, plane, group, mesh, label, orbitRing,
+    L0: md.L0 ?? (k * 137.508) % 360,
+    radius: () => Math.max(bodyRadius(md.radiusKm), 0.05),
+    dist: () => host.radius() * (1.35 + 0.6 * Math.sqrt(md.aKm / host.data.radiusKm)),
+  };
   register(body);
-  return body;
-})();
+  moonBodies.push(body);
+  (host.moons ||= []).push(body);
+});
+
+// Asteroid belt and Kuiper belt: clouds of particles on real-looking Kepler orbits.
+// Each dot is drawn with the same per-orbit compression as the planets.
+const beltBodies = [];
+function mulberry(seed) {
+  return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+for (const [bi, bd] of BELTS.entries()) {
+  const rnd = mulberry(1234 + bi);
+  const els = [];
+  for (let i = 0; i < bd.count; i++) {
+    const a = bd.peak && rnd() < 0.55 ? bd.peak[0] + rnd() * (bd.peak[1] - bd.peak[0]) : bd.inner + rnd() * (bd.outer - bd.inner);
+    const node = rnd() * 360, peri = rnd() * 360;
+    els.push({ a, e: rnd() * bd.maxE, i: (rnd() * rnd()) * bd.maxI, node, peri, L: rnd() * 360 });
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bd.count * 3), 3));
+  const points = new THREE.Points(geo, new THREE.PointsMaterial({
+    color: bd.color, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.55, depthWrite: false,
+  }));
+  points.frustumCulled = false;
+  const group = new THREE.Group();
+  scene.add(group);
+  group.add(points);
+  const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ visible: false }));
+  group.add(mesh);
+  const label = makeLabel(bd.name, bd.name);
+  label.element.classList.add('belt-label');
+  group.add(label);
+  const body = { data: { ...bd, kind: undefined }, kind: 'belt', group, mesh, label, points, els, lastDays: null, radius: () => 1 };
+  register(body);
+  pickables.pop(); // the belt itself is not clickable in the scene (its label is)
+  beltBodies.push(body);
+}
+function updateBelts(force = false) {
+  for (const b of beltBodies) {
+    if (!force && b.lastDays !== null && Math.abs(state.days - b.lastDays) < 3) continue;
+    b.lastDays = state.days;
+    const pos = b.points.geometry.attributes.position;
+    b.els.forEach((el, k) => {
+      toScene(positionAt(el, state.days), el.a, tmpV);
+      pos.setXYZ(k, tmpV.x, tmpV.y, tmpV.z);
+    });
+    pos.needsUpdate = true;
+    toScene({ x: b.data.labelAt, y: 0, z: 0 }, b.data.labelAt, b.label.position);
+  }
+}
+const tmpV = new THREE.Vector3();
 
 // ---------------------------------------------------------------- deep-sky objects (SPHEREx)
 // Each exported target becomes a glowing marker on the sky. Up close it is the
@@ -383,7 +462,7 @@ function buildSweep() {
 
 function applySizes() {
   for (const b of bodies) {
-    if (b.kind === 'sun' || b.kind === 'deepsky') continue;
+    if (b.kind === 'sun' || b.kind === 'deepsky' || b.kind === 'belt') continue;
     const r = b.radius();
     b.mesh.scale.setScalar(r);
     b.label.position.set(0, r * 1.15, 0);
@@ -403,21 +482,23 @@ function updatePositions() {
     b.helio = positionAt(b.data, state.days);
     toScene(b.helio, b.data.a, b.group.position);
   }
-  // Moon: simple circular orbit, inclined 5°, around Earth.
-  const L = (MOON.L0 + (360 / MOON.periodDays) * state.days) * DEG;
-  const dist = earth.radius() * 2.2 + moonBody.radius() + 1.2;
-  const inc = MOON.inclination * DEG;
-  moonBody.group.position.set(Math.cos(L) * dist, Math.sin(L) * Math.sin(inc) * dist, -Math.sin(L) * Math.cos(inc) * dist);
+  for (const b of moonBodies) {
+    const L = (b.L0 + (360 / b.data.period) * state.days) * DEG;
+    const d = b.dist();
+    b.group.position.set(Math.cos(L) * d, 0, -Math.sin(L) * d);
+    b.orbitRing.scale.setScalar(d);
+  }
+  updateBelts();
 }
 
 function spinBodies(dDays) {
   for (const b of bodies) {
-    if (b.kind === 'moon' || b.kind === 'deepsky') continue;
+    if (b.kind === 'moon' || b.kind === 'deepsky' || b.kind === 'belt') continue;
     const rate = (2 * Math.PI * dDays * 24) / b.data.dayHours;
     b.mesh.rotation.y += THREE.MathUtils.clamp(rate, -0.06, 0.06); // capped so fast time doesn't strobe
   }
-  // The Moon is tidally locked: it keeps one face towards Earth.
-  moonBody.mesh.rotation.y = Math.atan2(-moonBody.group.position.z, moonBody.group.position.x) + Math.PI;
+  // Moons are tidally locked: they keep one face towards their planet.
+  for (const m of moonBodies) m.mesh.rotation.y = Math.atan2(-m.group.position.z, m.group.position.x) + Math.PI;
 }
 
 function updateTrails() {
@@ -447,7 +528,7 @@ function updateTrails() {
 }
 
 function worldPos(b, out = new THREE.Vector3()) {
-  if (b.kind === 'moon') return out.copy(earth.group.position).add(moonBody.group.position);
+  if (b.kind === 'moon') { b.host.group.updateMatrixWorld(true); return b.group.getWorldPosition(out); }
   return out.copy(b.group.position);
 }
 
@@ -468,7 +549,10 @@ function focusDistance(b) {
   if (!b || b.kind === 'sun') return overviewDistance();
   // Deep-sky image: close enough that it fills the height of the view.
   if (b.kind === 'deepsky') return (b.width / 2 / Math.tan((state.fov * DEG) / 2)) * 1.12;
-  return Math.max(4, b.radius() * 9 + (b.data.rings ? b.radius() * 4 : 0));
+  if (b.kind === 'belt') return (sceneDistance(b.data.outer) / Math.tan((state.fov * DEG) / 2)) * 1.05;
+  // a planet with moons: back off far enough to see its main moons too
+  const moonView = (b.moons || []).filter((m) => m.data.aKm / b.data.radiusKm < 70).reduce((mx, m) => Math.max(mx, m.dist() * 1.5), 0);
+  return Math.max(4, b.radius() * 9 + (b.data.rings ? b.radius() * 4 : 0), moonView);
 }
 
 // Up close, a deep-sky image only tilts a little: it is a flat picture of the
@@ -504,6 +588,7 @@ function startFly({ toDir = null, toDist = null } = {}) {
   if (!toDir && b?.kind === 'deepsky') toDir = b.group.position.clone().negate();
   const longHaul = b?.kind === 'deepsky' || ctrl.target.length() > 1000;
   const offset = cam.position.clone().sub(ctrl.target);
+  if (!(offset.length() > 1e-3)) offset.set(0, 0.4, 1); // camera sitting on its target: pick a direction
   fly = {
     t0: performance.now(),
     dur: longHaul ? 2600 : 1300,
@@ -511,13 +596,13 @@ function startFly({ toDir = null, toDist = null } = {}) {
     fromDir: offset.clone().normalize(),
     toDir: toDir ? toDir.clone().normalize() : offset.clone().normalize(),
     turn: new THREE.Quaternion(), // set below: the rotation from fromDir to toDir
-    fromDist: offset.length(),
-    toDist: toDist ?? (b ? focusDistance(b) : offset.length()),
+    fromDist: Math.max(1e-3, offset.length()),
+    toDist: Math.max(0.5, (toDist ?? (b ? focusDistance(b) : offset.length())) || 0.5),
     // Roll so celestial north is up at a SPHEREx image (the planets keep ecliptic north up).
     fromUp: persp.up.clone(),
     toUp: b?.kind === 'deepsky' ? b.north.clone() : new THREE.Vector3(0, 1, 0),
     fromZoom: ortho.zoom,
-    toZoom: b ? (b.kind === 'sun' ? overviewZoom() : ((ORTHO_BASE * state.fov) / 60) / (focusDistance(b) * 3)) : ortho.zoom,
+    toZoom: b ? (b.kind === 'sun' ? overviewZoom() : b.kind === 'belt' ? ((ORTHO_BASE * state.fov) / 60) / (2.2 * sceneDistance(b.data.outer)) : ((ORTHO_BASE * state.fov) / 60) / (focusDistance(b) * 3)) : ortho.zoom,
   };
   fly.turn.setFromUnitVectors(fly.fromDir, fly.toDir);
 }
@@ -686,6 +771,14 @@ function updateInfo() {
       ['Axial tilt', `${fmt(p.tilt, 1)}°`],
       ['Known moons', p.moons],
     ];
+  } else if (b.kind === 'moon' && !b.data.facts) {
+    const d = b.data;
+    key = [
+      ['Orbits', d.parent],
+      [`Distance from ${d.parent}`, `${fmt(d.aKm)} km`, `${fmt(d.aKm / b.host.data.radiusKm, 1)} times ${d.parent}'s radius`],
+      ['Orbital period', formatDuration(Math.abs(d.period)), d.period < 0 ? 'Goes round backwards (retrograde)' : ''],
+    ];
+    more = [['Radius', `${fmt(d.radiusKm, d.radiusKm < 100 ? 1 : 0)} km`]];
   } else {
     const facts = b.data.facts;
     key = facts.filter(([k]) => KEY_FACT.test(k));
@@ -758,7 +851,7 @@ new ResizeObserver(() => {
 
 // ---- Body rail: collapsible sections. The solar system first (outward from the
 // Sun, the Moon under Earth), then SPHEREx targets grouped by what they are.
-const SECTION_ORDER = ['Solar system', 'Nebulae', 'Galaxies', 'Star clusters', 'Stars', 'Sky fields', 'Other'];
+const SECTION_ORDER = ['Solar system', 'Dwarf planets', 'Nebulae', 'Galaxies', 'Star clusters', 'Stars', 'Sky fields', 'Other'];
 const RAIL_KEY = 'ssx-rail-collapsed';
 const collapsedSections = new Set((() => {
   try { return JSON.parse(localStorage.getItem(RAIL_KEY) || '[]'); } catch { return []; }
@@ -767,7 +860,8 @@ function saveCollapsed() {
   try { localStorage.setItem(RAIL_KEY, JSON.stringify([...collapsedSections])); } catch { /* private mode */ }
 }
 
-const KIND_TAG = { sun: 'Star', planet: 'Planet', moon: 'Moon' };
+const KIND_TAG = { sun: 'Star', planet: 'Planet', moon: 'Moon', belt: 'Belt' };
+const openMoons = new Set();
 
 function makeChip(b) {
   const chip = document.createElement('button');
@@ -783,12 +877,50 @@ function makeChip(b) {
   name.className = 'name';
   name.textContent = b.data.name;
   chip.append(orb, name);
+  if (b.kind === 'belt') orb.classList.add('belt-orb');
+  if (b.moons?.length) {
+    const t = document.createElement('span');
+    t.className = 'moon-toggle';
+    t.setAttribute('role', 'button');
+    t.setAttribute('aria-label', `${b.moons.length} moon${b.moons.length > 1 ? 's' : ''} of ${b.data.name}`);
+    t.setAttribute('aria-expanded', String(openMoons.has(b.data.name)));
+    t.innerHTML = `<span>${b.moons.length}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+    chip.append(t);
+    chip.classList.add('has-moons');
+  }
   return chip;
 }
 
+// A planet's chip, followed by its moons in a fold-out list.
+function chipWithMoons(b) {
+  const out = [makeChip(b)];
+  if (b.moons?.length) {
+    const list = document.createElement('div');
+    list.className = 'moon-list';
+    list.dataset.host = b.data.name;
+    if (!openMoons.has(b.data.name)) list.hidden = true;
+    list.append(...b.moons.map(makeChip));
+    out.push(list);
+  }
+  return out;
+}
+function setMoonsOpen(host, open) {
+  if (open) openMoons.add(host); else openMoons.delete(host);
+  const list = ui.rail.querySelector(`.moon-list[data-host="${CSS.escape(host)}"]`);
+  if (list) list.hidden = !open;
+  ui.rail.querySelector(`.body-chip[data-focus="${CSS.escape(host)}"] .moon-toggle`)?.setAttribute('aria-expanded', String(open));
+  moveLens({ reveal: false });
+  updateRailFade();
+}
+
 function buildRail() {
-  const groups = new Map([['Solar system',
-    ['Sun', ...PLANETS.flatMap((p) => (p.name === 'Earth' ? ['Earth', 'Moon'] : [p.name]))].map((n) => byName.get(n))]]);
+  const main = ['Sun', ...PLANETS.filter((p) => !p.dwarf).map((p) => p.name)];
+  main.splice(main.indexOf('Mars') + 1, 0, 'Asteroid belt');
+  main.push('Kuiper belt');
+  const groups = new Map([
+    ['Solar system', main.map((n) => byName.get(n)).filter(Boolean)],
+    ['Dwarf planets', PLANETS.filter((p) => p.dwarf).sort((a, b) => a.a - b.a).map((p) => byName.get(p.name))],
+  ]);
   for (const b of deepBodies) {
     const cat = b.data.category || 'Other';
     if (!groups.has(cat)) groups.set(cat, []);
@@ -814,7 +946,7 @@ function buildRail() {
     body.className = 'rail-body';
     const inner = document.createElement('div');
     inner.className = 'rail-inner';
-    inner.append(...list.map(makeChip));
+    inner.append(...list.flatMap((b) => (b.kind === 'deepsky' ? [makeChip(b)] : chipWithMoons(b))));
     body.append(inner);
     sec.append(head, body);
     nodes.push(sec);
@@ -846,11 +978,18 @@ function setSectionOpen(sec, open) {
 
 // Selecting something inside a collapsed section opens that section.
 function revealInRail(name) {
+  const fb = byName.get(name);
+  if (fb?.kind === 'moon' && !openMoons.has(fb.host.data.name)) setMoonsOpen(fb.host.data.name, true);
   const sec = ui.rail.querySelector(`.body-chip[data-focus="${CSS.escape(name)}"]`)?.closest('.rail-section');
   if (sec && sec.dataset.collapsed !== undefined) setSectionOpen(sec, true);
 }
 
 ui.rail.addEventListener('click', (e) => {
+  const tog = e.target.closest('.moon-toggle');
+  if (tog) {
+    const host = tog.closest('.body-chip').dataset.focus;
+    return setMoonsOpen(host, !openMoons.has(host));
+  }
   const head = e.target.closest('.rail-head');
   if (head) return setSectionOpen(head.parentElement, head.getAttribute('aria-expanded') !== 'true');
   const chip = e.target.closest('.body-chip');
@@ -1137,6 +1276,7 @@ tl.input.addEventListener('keydown', (e) => {
 ui.showOrbits.addEventListener('change', () => {
   state.showOrbits = ui.showOrbits.checked;
   for (const b of bodies) if (b.orbitLine) b.orbitLine.visible = state.showOrbits;
+  updateMoonLabel();
 });
 ui.showTrails.addEventListener('change', () => { state.showTrails = ui.showTrails.checked; clearTrails(); });
 ui.showLabels.addEventListener('change', () => {
@@ -1147,7 +1287,13 @@ ui.showLabels.addEventListener('change', () => {
 
 // The Moon's label would sit on top of Earth's unless we're close to Earth.
 function updateMoonLabel() {
-  moonBody.label.visible = state.showLabels && (state.focus === 'Earth' || state.focus === 'Moon');
+  const f = byName.get(state.focus);
+  const family = f?.kind === 'moon' ? f.host : f;
+  for (const m of moonBodies) {
+    const near = m.host === family;
+    m.label.visible = state.showLabels && near;
+    m.orbitRing.visible = state.showOrbits && near;
+  }
 }
 ui.showSweep.addEventListener('change', () => {
   state.showSweep = ui.showSweep.checked;
@@ -1161,6 +1307,7 @@ for (const btn of ui.scaleSeg.querySelectorAll('button')) {
     setSegment(ui.scaleSeg, 'scale', state.scale);
     buildOrbitLines();
     updatePositions();
+    updateBelts(true);
     buildSweep();
     clearTrails();
     if (state.focus !== 'free') startFly();
@@ -1580,8 +1727,13 @@ const STEP_TEXT = {
   export: 'Building the images…',
 };
 
-function showStatus(state, title, step, log = '') {
+function showStatus(state, title, step, log = '', pct = null) {
   search.status.hidden = false;
+  $('fsProg').hidden = pct == null;
+  if (pct != null) {
+    $('fsFill').style.width = `${Math.round(pct * 100)}%`;
+    $('fsPct').textContent = `${Math.round(pct * 100)}%`;
+  }
   search.status.dataset.state = state;
   search.fsTitle.textContent = title;
   search.fsStep.textContent = step;
@@ -1591,13 +1743,14 @@ $('fsClose').addEventListener('click', () => { search.status.hidden = true; });
 
 async function startFetch(name) {
   search.job = name;
-  showStatus('running', `Fetching ${name}`, STEP_TEXT.start);
+  showStatus('running', `Fetching ${name}`, STEP_TEXT.start, '', 0);
+  let shown = 0;
   try {
     let s = await fetch(`api/fetch?name=${encodeURIComponent(name)}`).then((r) => r.json());
     while (s.state === 'queued' || s.state === 'running') {
-      const extra = s.step === 'download' && s.n_images ? ` (${s.n_images} exposures found)` : '';
-      showStatus('running', `Fetching ${name} · ${s.elapsed ?? 0}s`, (STEP_TEXT[s.step] || 'Working…') + extra, s.log?.[s.log.length - 1] || '');
-      await new Promise((r) => setTimeout(r, 1500));
+      shown = Math.max(shown, s.progress ?? 0);
+      showStatus('running', `Fetching ${name} · ${s.elapsed ?? 0}s`, STEP_TEXT[s.state === 'queued' ? 'queued' : s.step] || 'Working…', s.log?.[s.log.length - 1] || '', shown);
+      await new Promise((r) => setTimeout(r, 800));
       s = await fetch(`api/status?name=${encodeURIComponent(name)}`, { cache: 'no-store' }).then((r) => r.json());
     }
     if (s.state !== 'done') throw new Error(s.error || 'The fetch did not finish.');
@@ -1607,7 +1760,7 @@ async function startFetch(name) {
       b = createDeepBody(d);
       buildRail();
     }
-    showStatus('done', `${d.name} added`, 'Flying there now. It stays in the sky and the list.');
+    showStatus('done', `${d.name} added`, 'Flying there now. It stays in the sky and the list.', '', 1);
     setTimeout(() => { if (search.status.dataset.state === 'done') search.status.hidden = true; }, 6000);
     focusOn(d.name);
   } catch (err) {
@@ -1630,14 +1783,23 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   if (hit && hit.object.userData.name !== state.focus) focusOn(hit.object.userData.name);
 });
 
-window.addEventListener('resize', () => {
-  const w = window.innerWidth, h = window.innerHeight;
+// Keep the canvas matched to the window. Inside the website the map can start while
+// its frame still has no size (0 x 0), which would leave it blank, so this is also
+// checked every frame and only acts once the size is real and has changed.
+let fitW = -1, fitH = -1;
+function fitView() {
+  const w = window.innerWidth || document.documentElement.clientWidth;
+  const h = window.innerHeight || document.documentElement.clientHeight;
+  if (!w || !h || (w === fitW && h === fitH)) return;
+  fitW = w; fitH = h;
   renderer.setSize(w, h);
   labelRenderer.setSize(w, h);
   persp.aspect = w / h;
   persp.updateProjectionMatrix();
   updateOrthoFrustum();
-});
+}
+window.addEventListener('resize', fitView);
+fitView();
 
 // ---------------------------------------------------------------- loop
 const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -1645,6 +1807,20 @@ let last = performance.now();
 let infoTimer = 0;
 
 function frame(now) {
+  requestAnimationFrame(frame); // scheduled first, so one bad frame can never stop the animation
+  try { step(now); } catch (err) { reportError(err); }
+}
+function step(now) {
+  fitView();
+  // Safety net: if the camera ever ends up at an invalid position, go back to the overview.
+  const cp = camera().position;
+  if (!Number.isFinite(cp.x + cp.y + cp.z) || !Number.isFinite(controls().target.x)) {
+    controls().target.set(0, 0, 0);
+    cp.set(0, overviewDistance() * 0.5, overviewDistance());
+    camera().up.set(0, 1, 0);
+    fly = null;
+    console.warn('Camera position was invalid; reset to the overview.');
+  }
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   const dDays = state.playing ? SPEEDS[state.speedIdx].days * state.direction * dt : 0;
@@ -1666,12 +1842,12 @@ function frame(now) {
 
   renderer.render(scene, camera());
   labelRenderer.render(scene, camera());
-  requestAnimationFrame(frame);
 }
 
 buildOrbitLines();
 applySizes();
 updatePositions();
+updateMoonLabel();
 updateSpeedUi();
 updateFovUi();
 focusOn('Sun', { showCard: window.innerWidth > 760 });
@@ -1711,3 +1887,27 @@ window.addEventListener('message', (e) => {
   if (!search.job) startFetch(q);
 });
 if (window.self !== window.top) document.documentElement.classList.add('framed');
+
+// ---------------------------------------------------------------- diagnostics
+// Press Shift+D to show what the map is doing (for bug reports). It also checks itself
+// every few seconds and explains a blank map instead of failing silently.
+function diagText() {
+  const gl = renderer.getContext(), cp = camera().position;
+  return [
+    `window ${window.innerWidth}×${window.innerHeight} @${window.devicePixelRatio}x`,
+    `canvas ${renderer.domElement.width}×${renderer.domElement.height}`,
+    `graphics ${gl.isContextLost() ? 'LOST' : 'ok'}`,
+    `mode ${state.mode} · focus ${state.focus}`,
+    `camera ${[cp.x, cp.y, cp.z].map((v) => v.toFixed(1)).join(', ')}`,
+    `draw calls ${renderer.info.render.calls} · labels ${state.showLabels ? 'on' : 'off'}`,
+  ].join(' | ');
+}
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'D' && e.shiftKey && !typing()) window.reportError?.(new Error(`Diagnostics: ${diagText()}`));
+});
+setInterval(() => {
+  if (document.hidden) return;
+  const gl = renderer.getContext();
+  if (gl.isContextLost()) window.reportError?.(new Error(`The graphics chip stopped drawing the map. ${diagText()}`));
+  else if (window.innerWidth > 0 && renderer.domElement.width === 0) { fitW = -1; fitView(); }
+}, 3000);

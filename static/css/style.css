@@ -863,7 +863,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px 
 .tour-foot .pill { flex: none; padding: 9px 16px; }
 .tour-foot .pill[hidden] { display: none; }
 .tour-next.pill { background: var(--sun); color: var(--sun-ink); font-weight: 600; }
-.tour-next.pill:hover { background: #ffe0a6; }
+.tour-next.pill:hover { background: #7dd3fc; }
 
 @media (max-width: 760px) {
   .tour-card { padding: 16px 18px 14px; border-radius: 24px; }
@@ -876,3 +876,41 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px 
 
 .brand h1 .pix { color: var(--sun); }
 html.framed .brand { display: none; }
+
+/* ---------- Moons fold out under their planet; belts ---------- */
+.body-chip.has-moons { padding-right: 8px; }
+.moon-toggle {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 2px;
+  height: 24px; padding: 0 6px 0 8px; border-radius: 999px;
+  font-size: var(--t-xs); font-weight: 600; color: var(--ink-3);
+  background: rgba(255, 255, 255, 0.06); transition: background 0.2s, color 0.2s;
+}
+.moon-toggle:hover { background: rgba(56, 189, 248, 0.18); color: var(--ink); }
+.moon-toggle svg { width: 14px; height: 14px; transition: transform 0.3s var(--glide); }
+.moon-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.moon-toggle[aria-expanded="true"] { color: var(--sun); }
+.moon-list { display: flex; flex-direction: column; gap: 1px; margin: 0 0 4px 14px; padding-left: 4px; border-left: 1px solid rgba(255, 255, 255, 0.08); animation: moonsIn 0.32s var(--glide); }
+.moon-list[hidden] { display: none; }
+@keyframes moonsIn { from { opacity: 0; transform: translateY(-4px); } }
+.body-chip.moon { padding-left: 10px; height: 30px; font-size: 12.5px; }
+.planet-orb.belt-orb {
+  background: radial-gradient(circle, transparent 38%, var(--c) 40% 46%, transparent 48% 58%, color-mix(in srgb, var(--c) 70%, transparent) 60% 66%, transparent 68%) !important;
+  box-shadow: none !important;
+}
+.label.moon-label { font-size: 11px; padding: 2px 7px; opacity: 0.85; }
+.label.belt-label { background: transparent; color: var(--ink-3); font-style: italic; letter-spacing: 0.04em; }
+
+/* ---------- Progress bars (blink + live fetch) ---------- */
+.prog { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: var(--t-xs); color: var(--ink-2); }
+.prog[hidden] { display: none; }
+.prog-track { position: relative; flex: 0 0 220px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.prog-fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--sun-deep), var(--sun)); box-shadow: 0 0 12px rgba(56, 189, 248, 0.55);
+  transition: width 0.6s var(--glide); }
+.prog-fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: translateX(-100%); animation: progShine 1.4s linear infinite; }
+.prog.done .prog-fill::after { animation: none; }
+@keyframes progShine { to { transform: translateX(100%); } }
+.prog b { font-variant-numeric: tabular-nums; color: var(--ink); min-width: 3.2ch; }
+.prog-step { color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fetch-status .prog-track { flex: 1 1 auto; }

@@ -31,7 +31,7 @@ body.blink-open .rail, body.blink-open #info, body.blink-open .transport, body.b
 .bl-search input:focus, .bl-field select:focus, .bl-pm input:focus { outline: 2px solid var(--sun); outline-offset: 1px; }
 .bl-field select option { color: #111; }
 .bl-go { flex: none; background: var(--sun); color: var(--sun-ink); font-weight: 600; padding: 0 20px; height: 38px; }
-.bl-go:hover:not(:disabled) { background: #ffe0a6; }
+.bl-go:hover:not(:disabled) { background: #7dd3fc; }
 .bl-tabs { width: 230px; flex: none; }
 
 .bl-opts { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.09); }
@@ -63,14 +63,16 @@ body.blink-open .rail, body.blink-open #info, body.blink-open .transport, body.b
 .bl-note { margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--ink-2); max-width: 90ch; }
 .bl-note b { color: var(--ink); }
 
-.bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
-.bl-grid canvas { display: block; width: 100%; height: auto; border-radius: 14px; background: #000; }
-.bl-grid figcaption { display: grid; gap: 1px; margin-top: 6px; font-size: var(--t-xs); color: var(--ink-3); }
+.bl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 22px; margin-top: 12px; }
+@media (max-width: 900px) { .bl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.bl-grid-title { margin: 6px 0 0; text-align: center; font-size: var(--t-sm); color: var(--ink-2); }
+.bl-grid canvas { display: block; width: 100%; height: auto; }
+.bl-grid figcaption { display: grid; gap: 1px; margin: 0 0 6px; text-align: center; font-size: var(--t-xs); color: var(--ink-3); }
 .bl-grid figcaption strong { font-size: var(--t-sm); color: var(--ink); }
 
 /* The Blink button in the details card and on the time bar */
 .blink-cta { width: 100%; margin-top: 16px; padding: 11px 14px; background: var(--sun); color: var(--sun-ink); font-weight: 600; }
-.blink-cta:hover { background: #ffe0a6; }
+.blink-cta:hover { background: #7dd3fc; }
 .blink-cta[hidden] { display: none; }
 
 @media (max-width: 760px) {
@@ -82,3 +84,22 @@ body.blink-open .rail, body.blink-open #info, body.blink-open .transport, body.b
 .brand-back { pointer-events: auto; margin-left: 6px; font-size: var(--t-xs); color: var(--ink-3); text-decoration: none; padding: 4px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
 .brand-back:hover { color: var(--ink); background: rgba(255,255,255,.08); }
 @media (max-width: 760px) { .brand-back { display: none; } }
+
+/* Settings fold away so the pictures get the room */
+.bl-more { border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.bl-more > summary {
+  display: flex; align-items: center; gap: 8px; width: fit-content; cursor: pointer; list-style: none;
+  padding: 6px 12px 6px 10px; margin-bottom: 8px; border-radius: 999px;
+  font-size: var(--t-sm); font-weight: 500; color: var(--ink-2); background: rgba(255, 255, 255, 0.05);
+  transition: background 0.2s, color 0.2s;
+}
+.bl-more > summary::-webkit-details-marker { display: none; }
+.bl-more > summary:hover { background: rgba(56, 189, 248, 0.14); color: var(--ink); }
+.bl-more > summary svg { width: 16px; height: 16px; }
+.bl-more > summary .chev { transition: transform 0.3s var(--glide); }
+.bl-more[open] > summary .chev { transform: rotate(180deg); }
+.bl-more[open] .bl-opts { animation: optsIn 0.3s var(--glide); }
+@keyframes optsIn { from { opacity: 0; transform: translateY(-6px); } }
+.bl-opts { border-bottom: none; }
+#blinkPanel { gap: 10px; }
+.bl-views canvas { box-shadow: 0 10px 40px -18px rgba(0, 0, 0, 0.9); }

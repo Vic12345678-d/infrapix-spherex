@@ -3,7 +3,7 @@
 // (the details card, the display panel) and put things back afterwards.
 import { liquid } from './glass.js';
 
-const DONE_KEY = 'infrapics-tour-done';
+const DONE_KEY = 'infrapix-tour-done-v2';
 
 export function tourSeen() {
   try { return localStorage.getItem(DONE_KEY) === '1'; } catch { return false; }

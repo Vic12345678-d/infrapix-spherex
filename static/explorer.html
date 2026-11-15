@@ -9,6 +9,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/blink.css" />
+  <script>
+  // Shows any script error on screen (instead of a silent blank map), so it can be reported.
+  window.reportError = function (err) {
+    var msg = (err && (err.message || err.reason && err.reason.message)) || String(err);
+    if (/ResizeObserver loop/.test(msg) || window.__lastErr === msg) return; window.__lastErr = msg;
+    console.error(err);
+    var box = document.getElementById('errBox');
+    if (!box) {
+      box = document.createElement('div'); box.id = 'errBox';
+      box.style.cssText = 'position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:99;max-width:min(640px,90vw);padding:10px 16px;border-radius:14px;background:rgba(120,20,20,.92);color:#fff;font:500 13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)';
+      document.body.appendChild(box);
+    }
+    box.textContent = 'Something went wrong in the map: ' + msg + ' (press Cmd+Shift+R to reload).';
+  };
+  window.addEventListener('error', function (e) { window.reportError(e.error || e.message); });
+  window.addEventListener('unhandledrejection', function (e) { window.reportError(e.reason); });
+</script>
   <script type="importmap">
     {
       "imports": {
@@ -50,6 +67,7 @@
         <strong id="fsTitle"></strong>
         <span id="fsStep"></span>
         <span id="fsLog" class="fs-log"></span>
+        <span class="prog" id="fsProg" hidden><span class="prog-track"><span class="prog-fill" id="fsFill"></span></span><b id="fsPct">0%</b></span>
       </div>
       <button id="fsClose" class="icon-btn fs-close" aria-label="Dismiss">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>

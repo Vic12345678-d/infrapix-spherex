@@ -1,6 +1,14 @@
 [
  {
-  "slug": "hd_209458b",
-  "name": "HD 209458b"
+  "slug": "andromeda_galaxy",
+  "name": "Andromeda Galaxy"
+ },
+ {
+  "slug": "barnard_s_star",
+  "name": "Barnard's Star"
+ },
+ {
+  "slug": "wise_j085510_83_071442_5",
+  "name": "WISE J085510.83-071442.5"
  }
 ]

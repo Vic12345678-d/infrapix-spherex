@@ -36,3 +36,10 @@ Search an object in the explorer: the backend (`/api/fetch`, `/api/status`, `exp
 its SPHEREx exposures and writes `nebula/<slug>/` (colour composite + six detector images).
 It is added to the map; its card shows the pictures and a **Blink** button opens the blink view.
 Run `python warm.py` once to pre-fetch the five test targets. `nebula/` is created automatically.
+
+## Solar system contents (v4)
+Planets, Pluto and the dwarf planets Ceres, Haumea, Makemake and Eris (elements from the JPL Small-Body
+Database via Wikipedia), 30 moons (folded under their planet in the list; their distances are compressed
+and their starting positions along their orbits are illustrative, except Earth's Moon), and the asteroid
+and Kuiper belts drawn as illustrative particle clouds.
+Progress: `/api/progress` reports what the server is doing; the blink view and the map's search show a bar.

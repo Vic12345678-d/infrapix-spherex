@@ -63,9 +63,9 @@ function paint(w, h, fn) {
   return canvas;
 }
 
-function rocky({ colors, seed, freq = 4, caps = false }) {
+function rocky({ colors, seed, freq = 4, caps = false, w = 512 }) {
   const dark = hexToRgb(colors[0]), light = hexToRgb(colors[1]);
-  return paint(512, 256, (lat, lon, x, y, z) => {
+  return paint(w, w / 2, (lat, lon, x, y, z) => {
     let v = fbm(x * freq, y * freq, z * freq, seed);
     const crater = fbm(x * freq * 4, y * freq * 4, z * freq * 4, seed + 5, 3);
     v = v * 0.85 + (crater > 0.62 ? -0.15 : crater < 0.3 ? 0.08 : 0);

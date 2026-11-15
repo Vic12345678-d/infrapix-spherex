@@ -80,6 +80,16 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"],
                    allow_headers=["*"])
 
 
+@app.middleware("http")
+async def no_stale_pages(request, call_next):
+    """Make the browser check for a newer copy of every page and script each time,
+    so an update is never mixed with old cached files."""
+    resp = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 # =============================================================== 2. TARGETS
 # Only the two targets whose numbers were given with the challenge are built in.
 # Everything else is looked up (Sesame for position, SIMBAD for proper motion).
@@ -401,9 +411,42 @@ def process(path, ra, dec, n, scale, pmra, pmdec, epoch, follow):
     return meta
 
 
+# What the server is doing right now, so the page can show a progress bar.
+# Builds run one at a time (see _build_lock), so one record is enough.
+PROGRESS = dict(stage="idle", done=0, total=0, outer=None, t=0.0)
+_prog_lock = threading.Lock()
+
+
+def _prog(**kw):
+    with _prog_lock:
+        PROGRESS.update(kw, t=time.time())
+
+
+def progress_fraction():
+    """0..1 for the current build (including the outer loop of /api/grid and the exporter)."""
+    p = dict(PROGRESS)
+    inner = {"idle": 0.0, "search": 0.04, "render": 0.97, "done": 1.0}.get(p["stage"])
+    if p["stage"] == "download":
+        inner = 0.06 + 0.9 * (p["done"] / p["total"] if p["total"] else 0)
+    if inner is None:
+        inner = 0.0
+    o = p.get("outer")
+    if o:
+        return min(1.0, (o[0] + inner) / o[1])
+    return inner
+
+
+@app.get("/api/progress")
+def api_progress():
+    p = dict(PROGRESS)
+    return dict(stage=p["stage"], done=p["done"], total=p["total"], outer=p["outer"],
+                fraction=round(progress_fraction(), 3), age=round(time.time() - p["t"], 1))
+
+
 @lru_cache(maxsize=8)
 def build_frames(ra, dec, fov, scale, max_frames, detector, pmra, pmdec, epoch, follow):
     n = int(round(fov * 3600 / scale))
+    _prog(stage="search", done=0, total=0)
     urls = search_urls(round(ra, 5), round(dec, 5))
     if detector:
         urls = tuple(x for x in urls if re.search(rf"D{detector}_spx", x))
@@ -412,6 +455,7 @@ def build_frames(ra, dec, fov, scale, max_frames, detector, pmra, pmdec, epoch, 
         urls = tuple(urls[int(i * step)] for i in range(max_frames))
     if not urls:
         raise HTTPException(404, "No SPHEREx images cover this position.")
+    _prog(stage="download", done=0, total=len(urls))
 
     def work(url):
         p = fetch_cutout(url, ra, dec, fov)
@@ -419,6 +463,9 @@ def build_frames(ra, dec, fov, scale, max_frames, detector, pmra, pmdec, epoch, 
         if f and not f["det"]:
             m = re.search(r"D(\d)_spx", url)
             f["det"] = int(m.group(1)) if m else 0
+        with _prog_lock:
+            PROGRESS["done"] += 1
+            PROGRESS["t"] = time.time()
         return f
 
     with ThreadPoolExecutor(WORKERS) as ex:
@@ -428,6 +475,7 @@ def build_frames(ra, dec, fov, scale, max_frames, detector, pmra, pmdec, epoch, 
                                  "Wait ~1 minute and press Load frames again; files already "
                                  "downloaded are kept.")
     log.info("built %d/%d frames", len(frames), len(urls))
+    _prog(stage="render")
     frames.sort(key=lambda f: f["mjd"])
     return n, tuple(frames)
 
@@ -553,6 +601,7 @@ def uri(arr):
 
 # ================================================================== 7. API
 def prepare(ra, dec, fov, scale, detector, bin_days, mode, max_frames, pmra, pmdec, epoch, follow):
+    _prog(outer=None, stage="search", done=0, total=0)
     n, allf = build_frames_locked(round(ra, 6), round(dec, 6), round(fov, 4), round(scale, 2),
                                   max_frames, detector, round(pmra, 3), round(pmdec, 3),
                                   round(epoch, 2), bool(follow))
@@ -586,7 +635,8 @@ def frames(ra: float, dec: float,
            max_frames: int = Query(12, ge=6, le=150),
            pmra: float = 0.0, pmdec: float = 0.0, epoch: float = 2026.0, follow: int = 1):
     p = prepare(ra, dec, fov, scale, detector, bin_days, mode, max_frames, pmra, pmdec, epoch, follow)
-    return dict(
+    _prog(stage="render")
+    out = dict(
         n=p["n"], scale=scale, ra=ra, dec=dec, fov=fov, mode=mode, total=p["total"],
         follow=bool(follow), pmra=pmra, pmdec=pmdec, epoch=epoch,
         frames=[dict(png=uri(gray_u8(p["disp"][i], p["lo"], p["hi"], p["diff"])),
@@ -595,6 +645,8 @@ def frames(ra: float, dec: float,
                      wl=f["wl"], flux=f["flux"], err=f["err"], obsid=f["obsid"])
                 for i, f in enumerate(p["fr"])],
         spectrum=p["spectrum"])
+    _prog(stage="done")
+    return out
 
 
 @app.get("/api/grid")
@@ -605,6 +657,7 @@ def grid(ra: float, dec: float,
     """One exposure from each of the 6 detectors = the target in 6 infrared colours."""
     panels, n = [], None
     for d in range(1, 7):
+        _prog(outer=(d - 1, 6), stage="search", done=0, total=0)
         try:
             n, fl = build_frames_locked(round(ra, 6), round(dec, 6), round(fov, 4),
                                         round(scale, 2), 2, d, round(pmra, 3), round(pmdec, 3),
@@ -617,6 +670,7 @@ def grid(ra: float, dec: float,
             panels.append(dict(det=d, png=uri(inferno_rgb(f["image"])),
                                wl=float(f["wl"]) if np.isfinite(f["wl"]) else None,
                                mjd=f["mjd"], year=f["year"], cra=f["cra"], cdec=f["cdec"]))
+    _prog(stage="done", outer=None)
     if not panels:
         raise HTTPException(404, "No exposure with the target inside the image was found.")
     return dict(n=n, scale=scale, ra=ra, dec=dec, fov=fov, pmra=pmra, pmdec=pmdec,
@@ -971,8 +1025,16 @@ def _run_job(key, name):
 
 def _job_view(j):
     t0 = j.get("t0") or time.time()
+    pct = None
+    if j["state"] == "running":
+        pct = {"resolve": 0.01, "search": 0.03, "export": 0.97}.get(j.get("step"))
+        if j.get("step") == "download":
+            pct = 0.03 + 0.94 * progress_fraction()
+    elif j["state"] == "done":
+        pct = 1.0
     return dict(state=j["state"], step=j.get("step"), slug=j.get("slug"), error=j.get("error"),
-                log=j["log"][-6:], elapsed=int(time.time() - t0), n_images=None)
+                log=j["log"][-6:], elapsed=int(time.time() - t0), n_images=PROGRESS["total"] or None,
+                progress=None if pct is None else round(pct, 3))
 
 
 @app.get("/api/fetch")

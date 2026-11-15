@@ -5,7 +5,7 @@ import { liquid } from './glass.js';
 
 const SCALE = 6.2; // SPHEREx pixel size, arcsec
 const BAND = { 1: [0.75, 1.09], 2: [1.10, 1.62], 3: [1.63, 2.41], 4: [2.42, 3.82], 5: [3.83, 4.41], 6: [4.42, 5.00] };
-const FONT = '"Instrument Sans", system-ui, sans-serif';
+const FONT = 'Inter, system-ui, sans-serif';
 const M = { l: 60, b: 44, t: 8, r: 8, cb: 76 };
 
 const X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>';
@@ -19,6 +19,7 @@ const HTML = `
   <div>
     <h2 id="blTitle">Blink</h2>
     <p id="blStatus" class="bl-status" aria-live="polite">Type a name or coordinates to compare every SPHEREx exposure of that spot.</p>
+    <div class="prog bl-prog" id="blProg" hidden><span class="prog-track"><span class="prog-fill" id="blProgFill"></span></span><b id="blProgPct">0%</b><span id="blProgStep" class="prog-step"></span></div>
   </div>
   <button class="icon-btn" id="blClose" aria-label="Close blink view">${X}</button>
 </header>
@@ -35,6 +36,8 @@ const HTML = `
   </div>
 </div>
 
+<details class="bl-more" id="blMore">
+<summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings and catalogue overlays<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
 <div class="bl-opts">
   <label class="bl-field">Detector
     <select id="blDet">
@@ -57,6 +60,7 @@ const HTML = `
     ${sw('blFollow', 'Follow object', true)}${sw('blCross', 'Mark target', true)}${sw('blGaia', 'Gaia stars', false)}${sw('blWise', 'AllWISE', false)}${sw('blCat', 'CatWISE', false)}${sw('blAst', 'Known asteroids', false)}
   </div>
 </div>
+</details>
 
 <div class="bl-body">
   <section id="blBlink">
@@ -92,6 +96,15 @@ async function jget(url) {
   return r.json();
 }
 const fmtDeg = (v, n = 4) => `${v.toFixed(n)}°`;
+// Sky coordinates the way astronomers write them: RA in hours, Dec in degrees and arcminutes.
+const fmtRA = (deg) => {
+  const h = (((deg % 360) + 360) % 360) / 15, hh = Math.floor(h), m = (h - hh) * 60, mm = Math.floor(m), ss = (m - mm) * 60;
+  return `${hh}h${String(mm).padStart(2, '0')}m${ss.toFixed(0).padStart(2, '0')}s`;
+};
+const fmtDec = (deg) => {
+  const a = Math.abs(deg), d = Math.floor(a), m = (a - d) * 60, mm = Math.floor(m), ss = Math.round((m - mm) * 60);
+  return `${deg < 0 ? '−' : '+'}${d}°${String(mm).padStart(2, '0')}′${String(ss).padStart(2, '0')}″`;
+};
 
 let root, q, D = null, G = null, imgs = [], imgs2 = [], idx = 0, timer = null;
 let gaia = [], wise = [], cat = [], ast = {}, astKey = (m) => (Math.round(m * 10) / 10).toFixed(1), resolved = '', token = 0, target = { ra: null, dec: null };
@@ -99,6 +112,44 @@ let onOpenChange = () => {};
 
 const $ = (id) => root.querySelector(`#${id}`);
 const isOpen = () => root?.classList.contains('open');
+
+// Progress bar: polls the server while it searches IRSA and downloads exposures.
+function startProgress() {
+  const box = $('blProg'), t0 = performance.now();
+  let alive = true, shown = 0;
+  const set = (f, text) => {
+    shown = Math.max(shown, f);
+    $('blProgFill').style.width = `${Math.round(shown * 100)}%`;
+    $('blProgPct').textContent = `${Math.round(shown * 100)}%`;
+    $('blProgStep').textContent = `${text} · ${Math.round((performance.now() - t0) / 1000)} s`;
+  };
+  box.hidden = false; box.classList.remove('done');
+  set(0.01, 'Starting');
+  (async () => {
+    while (alive) {
+      try {
+        const p = await fetch('api/progress', { cache: 'no-store' }).then((r) => r.json());
+        // ignore a record left over from an earlier request
+        if (alive && p.age <= (performance.now() - t0) / 1000 + 0.5 && p.stage !== 'idle') {
+          let text = p.stage === 'search' ? 'Searching the SPHEREx archive at NASA IRSA'
+            : p.stage === 'download' ? `Downloading exposures: ${p.done} of ${p.total}`
+              : p.stage === 'render' ? 'Lining up the frames' : p.stage === 'done' ? 'Drawing' : 'Working';
+          if (p.outer) text = `Detector ${p.outer[0] + 1} of 6 · ${text}`;
+          set(p.stage === 'done' ? 0.98 : p.fraction, text);
+        } else if (alive) set(shown, shown < 0.02 ? 'Waiting for the server' : $('blProgStep').textContent.split(' · ')[0]);
+      } catch { /* server busy: keep the last value */ }
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  })();
+  return (ok) => {
+    alive = false;
+    if (ok) {
+      set(1, 'Done');
+      box.classList.add('done');
+      setTimeout(() => { if (box.classList.contains('done')) box.hidden = true; }, 1400);
+    } else box.hidden = true;
+  };
+}
 
 function setStatus(t, err) { const s = $('blStatus'); s.textContent = t; s.classList.toggle('err', !!err); }
 
@@ -158,10 +209,15 @@ async function load() {
     if (my !== token) return;
     if (target.ra == null) throw new Error('Type an object name, or RA and Dec in degrees.');
     pushURL();
-    setStatus('Searching IRSA and downloading cutouts… the first load of an object can take a few minutes.');
-    const d = await jget(`api/frames?${params()}`);
-    const a = await Promise.all(d.frames.map((f) => loadImg(f.png)));
-    const b = await Promise.all(d.frames.map((f) => loadImg(f.diff)));
+    setStatus('Getting the exposures. The first load of an object can take a few minutes; after that it is instant.');
+    const end = startProgress();
+    let d, a, b;
+    try {
+      d = await jget(`api/frames?${params()}`);
+      a = await Promise.all(d.frames.map((f) => loadImg(f.png)));
+      b = await Promise.all(d.frames.map((f) => loadImg(f.diff)));
+      end(true);
+    } catch (e) { end(false); throw e; }
     if (my !== token) return;
     D = d; imgs = a; imgs2 = b; gaia = []; wise = []; cat = []; ast = {};
     $('blTransport').hidden = false;
@@ -236,9 +292,9 @@ function panel(cv, img, f, isDiff) {
   [0.15, 0.5, 0.85].forEach((k) => {
     const px = M.l + k * w, py = M.t + k * w, d = (0.5 - k) * D.n * SCALE;
     c.beginPath(); c.moveTo(px, M.t + w); c.lineTo(px, M.t + w + 4); c.stroke();
-    c.textAlign = 'center'; c.fillText(fmtDeg(f.cra + d / 3600 / cd), px, M.t + w + 16);
+    c.textAlign = 'center'; c.fillText(fmtRA(f.cra + d / 3600 / cd), px, M.t + w + 16);
     c.beginPath(); c.moveTo(M.l, py); c.lineTo(M.l - 4, py); c.stroke();
-    c.textAlign = 'right'; c.fillText(fmtDeg(f.cdec + d / 3600), M.l - 7, py + 3);
+    c.textAlign = 'right'; c.fillText(fmtDec(f.cdec + d / 3600), M.l - 7, py + 3);
   });
   c.textAlign = 'center'; c.fillStyle = '#cbd5e1'; c.font = `11px ${FONT}`;
   c.fillText('Right Ascension (east is left)', M.l + w / 2, w + M.t + M.b - 5);
@@ -329,11 +385,16 @@ async function loadGrid() {
   try {
     if (name && name !== resolved) await resolveName(name);
     if (target.ra == null) throw new Error('Type an object name, or RA and Dec in degrees.');
-    setStatus('Fetching one exposure from each detector… (the first time can take a few minutes)');
+    setStatus('Getting one exposure from each detector. The first time can take a few minutes.');
+    const end = startProgress();
     const p = new URLSearchParams({ ra: target.ra, dec: target.dec, fov: $('blFov').value, scale: SCALE,
       pmra: $('blPmra').value || 0, pmdec: $('blPmdec').value || 0, epoch: 2026, follow: $('blFollow').checked ? 1 : 0 });
-    const g = await jget(`api/grid?${p}`);
-    const gi = await Promise.all(g.panels.map((x) => loadImg(x.png)));
+    let g, gi;
+    try {
+      g = await jget(`api/grid?${p}`);
+      gi = await Promise.all(g.panels.map((x) => loadImg(x.png)));
+      end(true);
+    } catch (e) { end(false); throw e; }
     if (my !== token) return;
     G = g;
     const box = $('blGridBox'); box.replaceChildren();
@@ -341,18 +402,36 @@ async function loadGrid() {
     order.forEach((i) => {
       const P = g.panels[i], b = BAND[P.det], card = document.createElement('figure');
       const cv = document.createElement('canvas'); card.append(cv);
-      card.insertAdjacentHTML('beforeend', `<figcaption><strong>Detector ${P.det}${P.wl != null ? ` · target at ${P.wl.toFixed(2)} µm` : ''}</strong><span>covers ${b[0]}–${b[1]} µm · ${mjdDate(P.mjd)}</span></figcaption>`);
+      card.insertAdjacentHTML('afterbegin', `<figcaption><strong>Detector ${P.det}${P.wl != null ? ` · target seen at ${P.wl.toFixed(2)} µm` : ''}</strong><span>detector range ${b[0]}–${b[1]} µm · observed ${mjdDate(P.mjd)}</span></figcaption>`);
       box.append(card); gpanel(cv, gi[i], P);
     });
     setStatus(`${g.panels.length} exposures, one per detector.`);
   } catch (e) { if (my === token) setStatus(`Error: ${e.message}`, true); }
 }
+// One of the six exposures, drawn like the team's original figure: inferno colours,
+// sky-coordinate axes, north/east arrows and a cyan circle on the target.
 function gpanel(cv, img, P) {
-  const W = 360, c = prep(cv, W, W); cv.style.width = '100%';
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(img, 0, 0, W, W);
+  const W = 360, L = 66, B = 40, T = 6, R = 10, cw = L + W + R, ch = T + W + B;
+  const c = prep(cv, cw, ch); cv.style.width = '100%';
+  c.clearRect(0, 0, cw, ch);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(img, L, T, W, W);
+  c.strokeStyle = '#475569'; c.lineWidth = 1; c.strokeRect(L, T, W, W);
+  const half = (G.n * SCALE) / 2, cd = Math.cos(P.cdec * Math.PI / 180);
+  c.fillStyle = '#94a3b8'; c.font = `10px ${FONT}`;
+  [0.15, 0.5, 0.85].forEach((k) => {
+    const off = (0.5 - k) * 2 * half; // arcsec; east is left
+    const px = L + k * W, py = T + k * W;
+    c.beginPath(); c.moveTo(px, T + W); c.lineTo(px, T + W + 4); c.stroke();
+    c.textAlign = 'center'; c.fillText(fmtRA(P.cra + off / 3600 / cd), px, T + W + 16);
+    c.beginPath(); c.moveTo(L, py); c.lineTo(L - 4, py); c.stroke();
+    c.textAlign = 'right'; c.fillText(fmtDec(P.cdec + off / 3600), L - 6, py + 3);
+  });
+  c.fillStyle = '#cbd5e1'; c.font = `11px ${FONT}`; c.textAlign = 'center';
+  c.fillText('Right Ascension', L + W / 2, T + W + 33);
+  c.save(); c.translate(11, T + W / 2); c.rotate(-Math.PI / 2); c.fillText('Declination', 0, 0); c.restore();
   const [oE, oN] = objOffset(G, P), k = W / (G.n * SCALE);
-  c.strokeStyle = '#22d3ee'; c.lineWidth = 2; c.beginPath(); c.arc(W / 2 - oE * k, W / 2 - oN * k, Math.max(12, W * 0.06), 0, 7); c.stroke();
-  arrow(c, W - 26, W - 14, 0, -26, 'N'); arrow(c, W - 26, W - 14, -26, 0, 'E');
+  c.strokeStyle = '#22d3ee'; c.lineWidth = 2; c.beginPath(); c.arc(L + W / 2 - oE * k, T + W / 2 - oN * k, Math.max(9, W * 0.035), 0, 7); c.stroke();
+  arrow(c, L + W - 22, T + W - 18, 0, -28, 'N'); arrow(c, L + W - 22, T + W - 18, -28, 0, 'E');
 }
 
 function setTab(tab) {
@@ -439,8 +518,10 @@ export function initBlink({ onToggle } = {}) {
   }
 }
 
-// Re-fit the pictures when the window (or the embedding page) changes size.
+// Re-fit the pictures when the window (or the embedding page) changes size,
+// or when the settings fold open or shut.
 let _rs;
+document.addEventListener('toggle', (e) => { if (e.target.id === 'blMore') window.dispatchEvent(new Event('resize')); }, true);
 window.addEventListener('resize', () => {
   clearTimeout(_rs);
   _rs = setTimeout(() => { if (D && document.getElementById('blinkPanel')?.classList.contains('open')) show(idx); }, 150);

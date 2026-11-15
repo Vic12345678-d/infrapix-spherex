@@ -1,0 +1,2571 @@
+{
+ "name": "WISE J085510.83-071442.5",
+ "slug": "wise_j085510_83_071442_5",
+ "ra": 133.73603,
+ "dec": -7.24024,
+ "size_deg": 0.25,
+ "pix_arcsec": 6.2,
+ "n": 145,
+ "field_arcmin": 15.0,
+ "composite": "composite.png",
+ "rgb_bands": {
+  "blue": [
+   0.75,
+   1.6
+  ],
+  "green": [
+   1.6,
+   3.8
+  ],
+  "red": [
+   3.8,
+   5.0
+  ]
+ },
+ "layers": [
+  {
+   "det": 1,
+   "wl": [
+    0.971,
+    1.011
+   ],
+   "band": [
+    0.75,
+    1.09
+   ],
+   "date": "2025-05-06",
+   "color": "#6aa9ff",
+   "note": "Shortest wavelengths: light straight from hot stellar surfaces.",
+   "features": [],
+   "file": "layer_D1.png"
+  },
+  {
+   "det": 2,
+   "wl": [
+    1.494,
+    1.534
+   ],
+   "band": [
+    1.1,
+    1.62
+   ],
+   "date": "2025-05-06",
+   "color": "#5fd4c8",
+   "note": "Near-infrared: stars with little dust in the way.",
+   "features": [],
+   "file": "layer_D2.png"
+  },
+  {
+   "det": 3,
+   "wl": [
+    2.343,
+    2.383
+   ],
+   "band": [
+    1.63,
+    2.41
+   ],
+   "date": "2025-05-05",
+   "color": "#8ee27a",
+   "note": "Near-infrared: cool giants and reddened stars; water-ice absorption starts here.",
+   "features": [],
+   "file": "layer_D3.png"
+  },
+  {
+   "det": 4,
+   "wl": [
+    3.33,
+    3.37
+   ],
+   "band": [
+    2.42,
+    3.82
+   ],
+   "date": "2025-05-06",
+   "color": "#f2d95c",
+   "note": "Mid-infrared: warm dust and ices begin to glow.",
+   "features": [],
+   "file": "layer_D4.png"
+  },
+  {
+   "det": 5,
+   "wl": [
+    4.273,
+    4.313
+   ],
+   "band": [
+    3.83,
+    4.41
+   ],
+   "date": "2025-05-06",
+   "color": "#ff9f5a",
+   "note": "Mid-infrared: dusty, embedded young stars stand out.",
+   "features": [],
+   "file": "layer_D5.png"
+  },
+  {
+   "det": 6,
+   "wl": [
+    4.947,
+    4.987
+   ],
+   "band": [
+    4.42,
+    5.0
+   ],
+   "date": "2025-05-05",
+   "color": "#ff6b6b",
+   "note": "Longest wavelengths: the warmest dust and gas.",
+   "features": [],
+   "file": "layer_D6.png"
+  }
+ ],
+ "sources": [
+  {
+   "id": 1,
+   "col": 123,
+   "row": 47,
+   "rgb": [
+    0.939,
+    0.837,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    0.933,
+    0.741,
+    0.95,
+    0.929
+   ],
+   "ra": 133.6475,
+   "dec": -7.19717,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 2,
+   "col": 122,
+   "row": 128,
+   "rgb": [
+    1.0,
+    0.975,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    0.949,
+    1.0,
+    1.0
+   ],
+   "ra": 133.64921,
+   "dec": -7.33667,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 3,
+   "col": 132,
+   "row": 43,
+   "rgb": [
+    1.0,
+    0.952,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    0.903,
+    1.0,
+    1.0
+   ],
+   "ra": 133.63187,
+   "dec": -7.19028,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 4,
+   "col": 38,
+   "row": 82,
+   "rgb": [
+    0.998,
+    0.929,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    0.858,
+    0.996,
+    1.0
+   ],
+   "ra": 133.79506,
+   "dec": -7.25745,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 5,
+   "col": 96,
+   "row": 27,
+   "rgb": [
+    1.0,
+    0.983,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    0.966,
+    1.0,
+    1.0
+   ],
+   "ra": 133.69437,
+   "dec": -7.16273,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 6,
+   "col": 134,
+   "row": 100,
+   "rgb": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ra": 133.62838,
+   "dec": -7.28845,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 7,
+   "col": 103,
+   "row": 17,
+   "rgb": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ra": 133.68222,
+   "dec": -7.14551,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 8,
+   "col": 62,
+   "row": 89,
+   "rgb": [
+    0.976,
+    0.867,
+    0.939
+   ],
+   "peak": 0.976,
+   "bands": [
+    0.892,
+    0.985,
+    0.929,
+    0.806,
+    1.0,
+    0.951
+   ],
+   "ra": 133.75339,
+   "dec": -7.26951,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 9,
+   "col": 88,
+   "row": 81,
+   "rgb": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ra": 133.70825,
+   "dec": -7.25574,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 10,
+   "col": 78,
+   "row": 63,
+   "rgb": [
+    1.0,
+    0.969,
+    0.992
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    0.984,
+    1.0,
+    0.938,
+    1.0,
+    1.0
+   ],
+   "ra": 133.72561,
+   "dec": -7.22474,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 11,
+   "col": 139,
+   "row": 61,
+   "rgb": [
+    0.934,
+    0.972,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    0.943,
+    1.0,
+    0.868
+   ],
+   "ra": 133.61972,
+   "dec": -7.22128,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 12,
+   "col": 84,
+   "row": 31,
+   "rgb": [
+    0.775,
+    0.676,
+    0.933
+   ],
+   "peak": 0.933,
+   "bands": [
+    0.904,
+    0.962,
+    0.819,
+    0.532,
+    0.827,
+    0.722
+   ],
+   "ra": 133.7152,
+   "dec": -7.16962,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 13,
+   "col": 11,
+   "row": 25,
+   "rgb": [
+    0.851,
+    0.816,
+    0.961
+   ],
+   "peak": 0.961,
+   "bands": [
+    0.989,
+    0.932,
+    0.938,
+    0.693,
+    0.894,
+    0.809
+   ],
+   "ra": 133.84191,
+   "dec": -7.15928,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 14,
+   "col": 121,
+   "row": 99,
+   "rgb": [
+    0.921,
+    0.871,
+    0.959
+   ],
+   "peak": 0.959,
+   "bands": [
+    1.0,
+    0.917,
+    1.0,
+    0.743,
+    0.886,
+    0.956
+   ],
+   "ra": 133.65095,
+   "dec": -7.28673,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 15,
+   "col": 42,
+   "row": 101,
+   "rgb": [
+    0.868,
+    0.843,
+    0.935
+   ],
+   "peak": 0.935,
+   "bands": [
+    0.946,
+    0.923,
+    0.979,
+    0.708,
+    0.934,
+    0.802
+   ],
+   "ra": 133.78811,
+   "dec": -7.29018,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 16,
+   "col": 124,
+   "row": 113,
+   "rgb": [
+    0.924,
+    0.55,
+    0.402
+   ],
+   "peak": 0.924,
+   "bands": [
+    0.489,
+    0.315,
+    0.617,
+    0.484,
+    0.849,
+    1.0
+   ],
+   "ra": 133.64574,
+   "dec": -7.31084,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 17,
+   "col": 83,
+   "row": 57,
+   "rgb": [
+    0.878,
+    0.742,
+    0.948
+   ],
+   "peak": 0.948,
+   "bands": [
+    0.896,
+    1.0,
+    0.848,
+    0.636,
+    0.92,
+    0.837
+   ],
+   "ra": 133.71693,
+   "dec": -7.2144,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 18,
+   "col": 74,
+   "row": 134,
+   "rgb": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ra": 133.73255,
+   "dec": -7.34701,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 19,
+   "col": 16,
+   "row": 27,
+   "rgb": [
+    0.861,
+    0.819,
+    0.939
+   ],
+   "peak": 0.939,
+   "bands": [
+    1.0,
+    0.878,
+    0.922,
+    0.716,
+    0.882,
+    0.839
+   ],
+   "ra": 133.83323,
+   "dec": -7.16273,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 20,
+   "col": 106,
+   "row": 105,
+   "rgb": [
+    1.0,
+    0.817,
+    0.938
+   ],
+   "peak": 1.0,
+   "bands": [
+    0.896,
+    0.981,
+    0.81,
+    0.823,
+    1.0,
+    1.0
+   ],
+   "ra": 133.67699,
+   "dec": -7.29707,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 21,
+   "col": 103,
+   "row": 105,
+   "rgb": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "peak": 1.0,
+   "bands": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ra": 133.6822,
+   "dec": -7.29707,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 22,
+   "col": 133,
+   "row": 111,
+   "rgb": [
+    0.77,
+    0.598,
+    0.868
+   ],
+   "peak": 0.868,
+   "bands": [
+    0.918,
+    0.818,
+    0.825,
+    0.37,
+    0.768,
+    0.772
+   ],
+   "ra": 133.63011,
+   "dec": -7.30739,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 23,
+   "col": 71,
+   "row": 134,
+   "rgb": [
+    0.968,
+    0.806,
+    0.824
+   ],
+   "peak": 0.968,
+   "bands": [
+    0.826,
+    0.821,
+    0.873,
+    0.738,
+    0.935,
+    1.0
+   ],
+   "ra": 133.73776,
+   "dec": -7.34701,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 24,
+   "col": 27,
+   "row": 56,
+   "rgb": [
+    0.729,
+    0.796,
+    0.855
+   ],
+   "peak": 0.855,
+   "bands": [
+    0.896,
+    0.815,
+    0.952,
+    0.641,
+    0.803,
+    0.655
+   ],
+   "ra": 133.81415,
+   "dec": -7.21267,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 25,
+   "col": 104,
+   "row": 108,
+   "rgb": [
+    0.962,
+    0.764,
+    0.786
+   ],
+   "peak": 0.962,
+   "bands": [
+    0.812,
+    0.761,
+    0.736,
+    0.793,
+    1.0,
+    0.923
+   ],
+   "ra": 133.68047,
+   "dec": -7.30223,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 26,
+   "col": 18,
+   "row": 96,
+   "rgb": [
+    0.64,
+    0.585,
+    0.829
+   ],
+   "peak": 0.829,
+   "bands": [
+    0.809,
+    0.849,
+    0.715,
+    0.456,
+    0.567,
+    0.714
+   ],
+   "ra": 133.82978,
+   "dec": -7.28156,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 27,
+   "col": 12,
+   "row": 44,
+   "rgb": [
+    0.686,
+    0.794,
+    0.82
+   ],
+   "peak": 0.82,
+   "bands": [
+    0.718,
+    0.922,
+    0.922,
+    0.666,
+    0.786,
+    0.585
+   ],
+   "ra": 133.84018,
+   "dec": -7.192,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 28,
+   "col": 34,
+   "row": 140,
+   "rgb": [
+    0.765,
+    0.8,
+    0.66
+   ],
+   "peak": 0.8,
+   "bands": [
+    0.558,
+    0.761,
+    0.995,
+    0.605,
+    0.86,
+    0.669
+   ],
+   "ra": 133.80201,
+   "dec": -7.35734,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 29,
+   "col": 36,
+   "row": 115,
+   "rgb": [
+    0.581,
+    0.482,
+    0.774
+   ],
+   "peak": 0.774,
+   "bands": [
+    0.747,
+    0.8,
+    0.627,
+    0.336,
+    0.432,
+    0.73
+   ],
+   "ra": 133.79854,
+   "dec": -7.31429,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 30,
+   "col": 39,
+   "row": 101,
+   "rgb": [
+    0.784,
+    0.662,
+    0.592
+   ],
+   "peak": 0.784,
+   "bands": [
+    0.537,
+    0.647,
+    0.818,
+    0.506,
+    0.83,
+    0.739
+   ],
+   "ra": 133.79332,
+   "dec": -7.29018,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 31,
+   "col": 22,
+   "row": 42,
+   "rgb": [
+    0.645,
+    0.699,
+    0.757
+   ],
+   "peak": 0.757,
+   "bands": [
+    0.682,
+    0.831,
+    0.84,
+    0.557,
+    0.714,
+    0.575
+   ],
+   "ra": 133.82282,
+   "dec": -7.18856,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 32,
+   "col": 66,
+   "row": 91,
+   "rgb": [
+    0.64,
+    0.539,
+    0.723
+   ],
+   "peak": 0.723,
+   "bands": [
+    0.694,
+    0.751,
+    0.602,
+    0.477,
+    0.638,
+    0.641
+   ],
+   "ra": 133.74644,
+   "dec": -7.27296,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 33,
+   "col": 5,
+   "row": 94,
+   "rgb": [
+    0.455,
+    0.403,
+    0.687
+   ],
+   "peak": 0.687,
+   "bands": [
+    0.72,
+    0.655,
+    0.485,
+    0.321,
+    0.371,
+    0.539
+   ],
+   "ra": 133.85235,
+   "dec": -7.27811,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 34,
+   "col": 132,
+   "row": 122,
+   "rgb": [
+    0.523,
+    0.503,
+    0.685
+   ],
+   "peak": 0.685,
+   "bands": [
+    0.6,
+    0.77,
+    0.625,
+    0.381,
+    0.694,
+    0.353
+   ],
+   "ra": 133.63184,
+   "dec": -7.32633,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 35,
+   "col": 32,
+   "row": 143,
+   "rgb": [
+    0.256,
+    0.447,
+    0.698
+   ],
+   "peak": 0.698,
+   "bands": [
+    0.748,
+    0.647,
+    0.522,
+    0.371,
+    0.268,
+    0.244
+   ],
+   "ra": 133.80549,
+   "dec": -7.36251,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 36,
+   "col": 6,
+   "row": 34,
+   "rgb": [
+    0.577,
+    0.481,
+    0.702
+   ],
+   "peak": 0.702,
+   "bands": [
+    0.723,
+    0.681,
+    0.575,
+    0.387,
+    0.558,
+    0.596
+   ],
+   "ra": 133.85059,
+   "dec": -7.17478,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 37,
+   "col": 112,
+   "row": 125,
+   "rgb": [
+    0.529,
+    0.56,
+    0.663
+   ],
+   "peak": 0.663,
+   "bands": [
+    0.647,
+    0.679,
+    0.727,
+    0.393,
+    0.597,
+    0.461
+   ],
+   "ra": 133.66657,
+   "dec": -7.33151,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 38,
+   "col": 9,
+   "row": 40,
+   "rgb": [
+    0.648,
+    0.699,
+    0.567
+   ],
+   "peak": 0.699,
+   "bands": [
+    0.518,
+    0.616,
+    0.86,
+    0.537,
+    0.814,
+    0.482
+   ],
+   "ra": 133.84539,
+   "dec": -7.18511,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 39,
+   "col": 124,
+   "row": 89,
+   "rgb": [
+    0.655,
+    0.599,
+    0.596
+   ],
+   "peak": 0.655,
+   "bands": [
+    0.582,
+    0.611,
+    0.663,
+    0.536,
+    0.656,
+    0.653
+   ],
+   "ra": 133.64575,
+   "dec": -7.2695,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 40,
+   "col": 25,
+   "row": 78,
+   "rgb": [
+    0.448,
+    0.46,
+    0.656
+   ],
+   "peak": 0.656,
+   "bands": [
+    0.671,
+    0.641,
+    0.553,
+    0.367,
+    0.196,
+    0.7
+   ],
+   "ra": 133.81762,
+   "dec": -7.25056,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 41,
+   "col": 59,
+   "row": 51,
+   "rgb": [
+    0.614,
+    0.501,
+    0.578
+   ],
+   "peak": 0.614,
+   "bands": [
+    0.598,
+    0.558,
+    0.547,
+    0.455,
+    0.503,
+    0.724
+   ],
+   "ra": 133.75859,
+   "dec": -7.20407,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 42,
+   "col": 46,
+   "row": 128,
+   "rgb": [
+    0.605,
+    0.45,
+    0.4
+   ],
+   "peak": 0.605,
+   "bands": [
+    0.346,
+    0.453,
+    0.542,
+    0.359,
+    0.664,
+    0.546
+   ],
+   "ra": 133.78117,
+   "dec": -7.33668,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 43,
+   "col": 103,
+   "row": 39,
+   "rgb": [
+    0.497,
+    0.419,
+    0.596
+   ],
+   "peak": 0.596,
+   "bands": [
+    0.546,
+    0.646,
+    0.491,
+    0.346,
+    0.434,
+    0.56
+   ],
+   "ra": 133.68222,
+   "dec": -7.1834,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 44,
+   "col": 116,
+   "row": 57,
+   "rgb": [
+    0.486,
+    0.515,
+    0.595
+   ],
+   "peak": 0.595,
+   "bands": [
+    0.705,
+    0.484,
+    0.684,
+    0.346,
+    0.39,
+    0.583
+   ],
+   "ra": 133.65964,
+   "dec": -7.2144,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 45,
+   "col": 124,
+   "row": 28,
+   "rgb": [
+    0.481,
+    0.499,
+    0.607
+   ],
+   "peak": 0.607,
+   "bands": [
+    0.567,
+    0.646,
+    0.687,
+    0.31,
+    0.554,
+    0.409
+   ],
+   "ra": 133.64577,
+   "dec": -7.16445,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 46,
+   "col": 83,
+   "row": 118,
+   "rgb": [
+    0.424,
+    0.477,
+    0.585
+   ],
+   "peak": 0.585,
+   "bands": [
+    0.596,
+    0.575,
+    0.66,
+    0.295,
+    0.413,
+    0.436
+   ],
+   "ra": 133.71693,
+   "dec": -7.31946,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 47,
+   "col": 133,
+   "row": 92,
+   "rgb": [
+    0.446,
+    0.574,
+    0.481
+   ],
+   "peak": 0.574,
+   "bands": [
+    0.419,
+    0.543,
+    0.787,
+    0.362,
+    0.532,
+    0.36
+   ],
+   "ra": 133.63012,
+   "dec": -7.27467,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 48,
+   "col": 55,
+   "row": 128,
+   "rgb": [
+    0.418,
+    0.514,
+    0.576
+   ],
+   "peak": 0.576,
+   "bands": [
+    0.589,
+    0.563,
+    0.636,
+    0.393,
+    0.449,
+    0.388
+   ],
+   "ra": 133.76555,
+   "dec": -7.33668,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 49,
+   "col": 9,
+   "row": 86,
+   "rgb": [
+    0.553,
+    0.425,
+    0.403
+   ],
+   "peak": 0.553,
+   "bands": [
+    0.361,
+    0.445,
+    0.544,
+    0.305,
+    0.668,
+    0.438
+   ],
+   "ra": 133.8454,
+   "dec": -7.26433,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 50,
+   "col": 40,
+   "row": 11,
+   "rgb": [
+    0.44,
+    0.321,
+    0.547
+   ],
+   "peak": 0.547,
+   "bands": [
+    0.563,
+    0.531,
+    0.385,
+    0.257,
+    0.492,
+    0.389
+   ],
+   "ra": 133.79157,
+   "dec": -7.13518,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 51,
+   "col": 54,
+   "row": 12,
+   "rgb": [
+    0.41,
+    0.535,
+    0.54
+   ],
+   "peak": 0.54,
+   "bands": [
+    0.628,
+    0.452,
+    0.657,
+    0.413,
+    0.462,
+    0.357
+   ],
+   "ra": 133.76727,
+   "dec": -7.1369,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 52,
+   "col": 65,
+   "row": 12,
+   "rgb": [
+    0.546,
+    0.338,
+    0.508
+   ],
+   "peak": 0.546,
+   "bands": [
+    0.371,
+    0.645,
+    0.429,
+    0.246,
+    0.585,
+    0.507
+   ],
+   "ra": 133.74818,
+   "dec": -7.1369,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 53,
+   "col": 19,
+   "row": 111,
+   "rgb": [
+    0.22,
+    0.326,
+    0.531
+   ],
+   "peak": 0.531,
+   "bands": [
+    0.588,
+    0.474,
+    0.455,
+    0.198,
+    0.308,
+    0.131
+   ],
+   "ra": 133.82805,
+   "dec": -7.30739,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 54,
+   "col": 73,
+   "row": 131,
+   "rgb": [
+    0.638,
+    0.43,
+    0.251
+   ],
+   "peak": 0.638,
+   "bands": [
+    0.19,
+    0.311,
+    0.495,
+    0.366,
+    0.475,
+    0.8
+   ],
+   "ra": 133.73429,
+   "dec": -7.34185,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 55,
+   "col": 29,
+   "row": 84,
+   "rgb": [
+    0.395,
+    0.35,
+    0.545
+   ],
+   "peak": 0.545,
+   "bands": [
+    0.539,
+    0.551,
+    0.411,
+    0.288,
+    0.344,
+    0.446
+   ],
+   "ra": 133.81068,
+   "dec": -7.2609,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 56,
+   "col": 120,
+   "row": 105,
+   "rgb": [
+    0.563,
+    0.42,
+    0.462
+   ],
+   "peak": 0.563,
+   "bands": [
+    0.423,
+    0.5,
+    0.468,
+    0.371,
+    0.609,
+    0.517
+   ],
+   "ra": 133.65269,
+   "dec": -7.29706,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 57,
+   "col": 35,
+   "row": 58,
+   "rgb": [
+    0.452,
+    0.402,
+    0.516
+   ],
+   "peak": 0.516,
+   "bands": [
+    0.596,
+    0.436,
+    0.466,
+    0.337,
+    0.5,
+    0.405
+   ],
+   "ra": 133.80026,
+   "dec": -7.21612,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 58,
+   "col": 13,
+   "row": 38,
+   "rgb": [
+    0.539,
+    0.438,
+    0.47
+   ],
+   "peak": 0.539,
+   "bands": [
+    0.446,
+    0.493,
+    0.584,
+    0.292,
+    0.499,
+    0.578
+   ],
+   "ra": 133.83844,
+   "dec": -7.18167,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 59,
+   "col": 33,
+   "row": 52,
+   "rgb": [
+    0.26,
+    0.476,
+    0.522
+   ],
+   "peak": 0.522,
+   "bands": [
+    0.501,
+    0.542,
+    0.613,
+    0.338,
+    0.521,
+    0.0
+   ],
+   "ra": 133.80373,
+   "dec": -7.20579,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 60,
+   "col": 114,
+   "row": 76,
+   "rgb": [
+    0.228,
+    0.344,
+    0.488
+   ],
+   "peak": 0.488,
+   "bands": [
+    0.458,
+    0.519,
+    0.384,
+    0.304,
+    0.414,
+    0.042
+   ],
+   "ra": 133.66311,
+   "dec": -7.24712,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 61,
+   "col": 69,
+   "row": 103,
+   "rgb": [
+    0.489,
+    0.344,
+    0.418
+   ],
+   "peak": 0.489,
+   "bands": [
+    0.477,
+    0.359,
+    0.603,
+    0.085,
+    0.549,
+    0.43
+   ],
+   "ra": 133.74124,
+   "dec": -7.29362,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 62,
+   "col": 120,
+   "row": 33,
+   "rgb": [
+    0.182,
+    0.342,
+    0.485
+   ],
+   "peak": 0.485,
+   "bands": [
+    0.561,
+    0.409,
+    0.425,
+    0.258,
+    0.217,
+    0.146
+   ],
+   "ra": 133.65271,
+   "dec": -7.17306,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 63,
+   "col": 112,
+   "row": 90,
+   "rgb": [
+    0.461,
+    0.236,
+    0.24
+   ],
+   "peak": 0.461,
+   "bands": [
+    0.221,
+    0.26,
+    0.286,
+    0.185,
+    0.406,
+    0.516
+   ],
+   "ra": 133.66658,
+   "dec": -7.27123,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 64,
+   "col": 30,
+   "row": 58,
+   "rgb": [
+    0.23,
+    0.37,
+    0.493
+   ],
+   "peak": 0.493,
+   "bands": [
+    0.455,
+    0.53,
+    0.526,
+    0.215,
+    0.375,
+    0.084
+   ],
+   "ra": 133.80894,
+   "dec": -7.21612,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 65,
+   "col": 125,
+   "row": 10,
+   "rgb": [
+    0.282,
+    0.331,
+    0.461
+   ],
+   "peak": 0.461,
+   "bands": [
+    0.392,
+    0.531,
+    0.46,
+    0.201,
+    0.321,
+    0.243
+   ],
+   "ra": 133.64404,
+   "dec": -7.13345,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 66,
+   "col": 98,
+   "row": 125,
+   "rgb": [
+    0.475,
+    0.404,
+    0.427
+   ],
+   "peak": 0.475,
+   "bands": [
+    0.444,
+    0.41,
+    0.46,
+    0.347,
+    0.378,
+    0.571
+   ],
+   "ra": 133.69088,
+   "dec": -7.33151,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 67,
+   "col": 21,
+   "row": 35,
+   "rgb": [
+    0.137,
+    0.5,
+    0.0
+   ],
+   "peak": 0.5,
+   "bands": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.275
+   ],
+   "ra": 133.82455,
+   "dec": -7.17651,
+   "kind": "mid",
+   "why": "Brightest at 1.6-3.8 um: often a cool giant star, or a star seen through some dust."
+  },
+  {
+   "id": 68,
+   "col": 49,
+   "row": 113,
+   "rgb": [
+    0.135,
+    0.272,
+    0.463
+   ],
+   "peak": 0.463,
+   "bands": [
+    0.538,
+    0.388,
+    0.348,
+    0.196,
+    0.132,
+    0.137
+   ],
+   "ra": 133.77596,
+   "dec": -7.31085,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 69,
+   "col": 21,
+   "row": 39,
+   "rgb": [
+    0.082,
+    0.5,
+    0.0
+   ],
+   "peak": 0.5,
+   "bands": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.163,
+    0.0
+   ],
+   "ra": 133.82456,
+   "dec": -7.18339,
+   "kind": "mid",
+   "why": "Brightest at 1.6-3.8 um: often a cool giant star, or a star seen through some dust."
+  },
+  {
+   "id": 70,
+   "col": 127,
+   "row": 116,
+   "rgb": [
+    0.363,
+    0.409,
+    0.494
+   ],
+   "peak": 0.494,
+   "bands": [
+    0.41,
+    0.578,
+    0.55,
+    0.268,
+    0.389,
+    0.337
+   ],
+   "ra": 133.64053,
+   "dec": -7.316,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 71,
+   "col": 4,
+   "row": 70,
+   "rgb": [
+    0.314,
+    0.333,
+    0.435
+   ],
+   "peak": 0.435,
+   "bands": [
+    0.412,
+    0.458,
+    0.439,
+    0.227,
+    0.337,
+    0.29
+   ],
+   "ra": 133.85408,
+   "dec": -7.23678,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 72,
+   "col": 29,
+   "row": 114,
+   "rgb": [
+    0.433,
+    0.347,
+    0.372
+   ],
+   "peak": 0.433,
+   "bands": [
+    0.4,
+    0.344,
+    0.475,
+    0.219,
+    0.406,
+    0.46
+   ],
+   "ra": 133.81069,
+   "dec": -7.31256,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 73,
+   "col": 62,
+   "row": 127,
+   "rgb": [
+    0.22,
+    0.4,
+    0.436
+   ],
+   "peak": 0.436,
+   "bands": [
+    0.444,
+    0.428,
+    0.542,
+    0.258,
+    0.184,
+    0.257
+   ],
+   "ra": 133.75339,
+   "dec": -7.33496,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 74,
+   "col": 42,
+   "row": 78,
+   "rgb": [
+    0.457,
+    0.141,
+    0.055
+   ],
+   "peak": 0.457,
+   "bands": [
+    0.028,
+    0.081,
+    0.172,
+    0.109,
+    0.557,
+    0.358
+   ],
+   "ra": 133.78811,
+   "dec": -7.25057,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 75,
+   "col": 93,
+   "row": 94,
+   "rgb": [
+    0.408,
+    0.304,
+    0.392
+   ],
+   "peak": 0.408,
+   "bands": [
+    0.498,
+    0.287,
+    0.397,
+    0.21,
+    0.268,
+    0.548
+   ],
+   "ra": 133.69957,
+   "dec": -7.27812,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 76,
+   "col": 17,
+   "row": 101,
+   "rgb": [
+    0.319,
+    0.355,
+    0.435
+   ],
+   "peak": 0.435,
+   "bands": [
+    0.499,
+    0.371,
+    0.456,
+    0.255,
+    0.178,
+    0.459
+   ],
+   "ra": 133.83152,
+   "dec": -7.29017,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 77,
+   "col": 72,
+   "row": 38,
+   "rgb": [
+    0.369,
+    0.4,
+    0.35
+   ],
+   "peak": 0.4,
+   "bands": [
+    0.337,
+    0.363,
+    0.545,
+    0.256,
+    0.373,
+    0.364
+   ],
+   "ra": 133.73603,
+   "dec": -7.18168,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 78,
+   "col": 116,
+   "row": 44,
+   "rgb": [
+    0.276,
+    0.232,
+    0.4
+   ],
+   "peak": 0.4,
+   "bands": [
+    0.349,
+    0.451,
+    0.317,
+    0.147,
+    0.19,
+    0.362
+   ],
+   "ra": 133.65965,
+   "dec": -7.19201,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 79,
+   "col": 140,
+   "row": 49,
+   "rgb": [
+    0.156,
+    0.381,
+    0.388
+   ],
+   "peak": 0.388,
+   "bands": [
+    0.326,
+    0.45,
+    0.495,
+    0.268,
+    0.223,
+    0.089
+   ],
+   "ra": 133.61799,
+   "dec": -7.20061,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 80,
+   "col": 31,
+   "row": 49,
+   "rgb": [
+    0.104,
+    0.244,
+    0.415
+   ],
+   "peak": 0.415,
+   "bands": [
+    0.505,
+    0.326,
+    0.346,
+    0.143,
+    0.179,
+    0.028
+   ],
+   "ra": 133.8072,
+   "dec": -7.20062,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 81,
+   "col": 119,
+   "row": 102,
+   "rgb": [
+    0.319,
+    0.36,
+    0.445
+   ],
+   "peak": 0.445,
+   "bands": [
+    0.49,
+    0.4,
+    0.547,
+    0.174,
+    0.333,
+    0.305
+   ],
+   "ra": 133.65442,
+   "dec": -7.2919,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 82,
+   "col": 134,
+   "row": 80,
+   "rgb": [
+    0.378,
+    0.277,
+    0.355
+   ],
+   "peak": 0.378,
+   "bands": [
+    0.412,
+    0.297,
+    0.4,
+    0.154,
+    0.223,
+    0.533
+   ],
+   "ra": 133.62839,
+   "dec": -7.254,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 83,
+   "col": 24,
+   "row": 69,
+   "rgb": [
+    0.093,
+    0.237,
+    0.386
+   ],
+   "peak": 0.386,
+   "bands": [
+    0.364,
+    0.409,
+    0.328,
+    0.147,
+    0.186,
+    0.0
+   ],
+   "ra": 133.81936,
+   "dec": -7.23506,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 84,
+   "col": 107,
+   "row": 108,
+   "rgb": [
+    0.524,
+    0.331,
+    0.275
+   ],
+   "peak": 0.524,
+   "bands": [
+    0.237,
+    0.313,
+    0.345,
+    0.317,
+    0.533,
+    0.515
+   ],
+   "ra": 133.67526,
+   "dec": -7.30223,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 85,
+   "col": 23,
+   "row": 87,
+   "rgb": [
+    0.388,
+    0.165,
+    0.183
+   ],
+   "peak": 0.388,
+   "bands": [
+    0.165,
+    0.2,
+    0.203,
+    0.126,
+    0.355,
+    0.42
+   ],
+   "ra": 133.8211,
+   "dec": -7.26606,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 86,
+   "col": 89,
+   "row": 37,
+   "rgb": [
+    0.384,
+    0.3,
+    0.176
+   ],
+   "peak": 0.384,
+   "bands": [
+    0.164,
+    0.187,
+    0.355,
+    0.246,
+    0.161,
+    0.608
+   ],
+   "ra": 133.70652,
+   "dec": -7.17996,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 87,
+   "col": 26,
+   "row": 53,
+   "rgb": [
+    0.056,
+    0.206,
+    0.396
+   ],
+   "peak": 0.396,
+   "bands": [
+    0.375,
+    0.417,
+    0.246,
+    0.167,
+    0.112,
+    0.0
+   ],
+   "ra": 133.81588,
+   "dec": -7.20751,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 88,
+   "col": 53,
+   "row": 139,
+   "rgb": [
+    0.17,
+    0.23,
+    0.361
+   ],
+   "peak": 0.361,
+   "bands": [
+    0.404,
+    0.318,
+    0.296,
+    0.164,
+    0.209,
+    0.131
+   ],
+   "ra": 133.76902,
+   "dec": -7.35562,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 89,
+   "col": 128,
+   "row": 50,
+   "rgb": [
+    0.286,
+    0.334,
+    0.391
+   ],
+   "peak": 0.391,
+   "bands": [
+    0.491,
+    0.291,
+    0.452,
+    0.216,
+    0.359,
+    0.213
+   ],
+   "ra": 133.63882,
+   "dec": -7.20234,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 90,
+   "col": 58,
+   "row": 35,
+   "rgb": [
+    0.129,
+    0.217,
+    0.353
+   ],
+   "peak": 0.353,
+   "bands": [
+    0.356,
+    0.349,
+    0.299,
+    0.134,
+    0.242,
+    0.017
+   ],
+   "ra": 133.76033,
+   "dec": -7.17651,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 91,
+   "col": 62,
+   "row": 66,
+   "rgb": [
+    0.255,
+    0.275,
+    0.352
+   ],
+   "peak": 0.352,
+   "bands": [
+    0.305,
+    0.399,
+    0.35,
+    0.2,
+    0.446,
+    0.065
+   ],
+   "ra": 133.75339,
+   "dec": -7.2299,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 92,
+   "col": 84,
+   "row": 67,
+   "rgb": [
+    0.348,
+    0.37,
+    0.375
+   ],
+   "peak": 0.375,
+   "bands": [
+    0.432,
+    0.317,
+    0.396,
+    0.344,
+    0.42,
+    0.276
+   ],
+   "ra": 133.71519,
+   "dec": -7.23162,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 93,
+   "col": 105,
+   "row": 25,
+   "rgb": [
+    0.109,
+    0.255,
+    0.363
+   ],
+   "peak": 0.363,
+   "bands": [
+    0.269,
+    0.457,
+    0.395,
+    0.115,
+    0.097,
+    0.12
+   ],
+   "ra": 133.67875,
+   "dec": -7.15929,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 94,
+   "col": 130,
+   "row": 37,
+   "rgb": [
+    0.37,
+    0.0,
+    0.0
+   ],
+   "peak": 0.37,
+   "bands": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.463,
+    0.277
+   ],
+   "ra": 133.63535,
+   "dec": -7.17995,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 95,
+   "col": 52,
+   "row": 90,
+   "rgb": [
+    0.346,
+    0.259,
+    0.29
+   ],
+   "peak": 0.346,
+   "bands": [
+    0.32,
+    0.261,
+    0.362,
+    0.156,
+    0.394,
+    0.298
+   ],
+   "ra": 133.77075,
+   "dec": -7.27123,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 96,
+   "col": 66,
+   "row": 135,
+   "rgb": [
+    0.23,
+    0.344,
+    0.402
+   ],
+   "peak": 0.402,
+   "bands": [
+    0.464,
+    0.34,
+    0.439,
+    0.248,
+    0.171,
+    0.289
+   ],
+   "ra": 133.74645,
+   "dec": -7.34874,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 97,
+   "col": 70,
+   "row": 70,
+   "rgb": [
+    0.35,
+    0.0,
+    0.0
+   ],
+   "peak": 0.35,
+   "bands": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.432,
+    0.269
+   ],
+   "ra": 133.7395,
+   "dec": -7.23679,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 98,
+   "col": 141,
+   "row": 72,
+   "rgb": [
+    0.344,
+    0.01,
+    0.006
+   ],
+   "peak": 0.344,
+   "bands": [
+    0.002,
+    0.01,
+    0.006,
+    0.015,
+    0.205,
+    0.482
+   ],
+   "ra": 133.61624,
+   "dec": -7.24022,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 99,
+   "col": 59,
+   "row": 118,
+   "rgb": [
+    0.223,
+    0.28,
+    0.348
+   ],
+   "peak": 0.348,
+   "bands": [
+    0.296,
+    0.399,
+    0.333,
+    0.227,
+    0.131,
+    0.316
+   ],
+   "ra": 133.7586,
+   "dec": -7.31946,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 100,
+   "col": 77,
+   "row": 60,
+   "rgb": [
+    0.377,
+    0.378,
+    0.392
+   ],
+   "peak": 0.392,
+   "bands": [
+    0.365,
+    0.419,
+    0.447,
+    0.309,
+    0.404,
+    0.351
+   ],
+   "ra": 133.72735,
+   "dec": -7.21957,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  },
+  {
+   "id": 101,
+   "col": 60,
+   "row": 141,
+   "rgb": [
+    0.207,
+    0.309,
+    0.335
+   ],
+   "peak": 0.335,
+   "bands": [
+    0.301,
+    0.369,
+    0.435,
+    0.184,
+    0.36,
+    0.054
+   ],
+   "ra": 133.75687,
+   "dec": -7.35907,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 102,
+   "col": 119,
+   "row": 95,
+   "rgb": [
+    0.375,
+    0.0,
+    0.0
+   ],
+   "peak": 0.375,
+   "bands": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.186,
+    0.565
+   ],
+   "ra": 133.65442,
+   "dec": -7.27984,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 103,
+   "col": 139,
+   "row": 68,
+   "rgb": [
+    0.122,
+    0.292,
+    0.369
+   ],
+   "peak": 0.369,
+   "bands": [
+    0.441,
+    0.298,
+    0.46,
+    0.124,
+    0.123,
+    0.121
+   ],
+   "ra": 133.61971,
+   "dec": -7.23333,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 104,
+   "col": 31,
+   "row": 101,
+   "rgb": [
+    0.216,
+    0.006,
+    0.323
+   ],
+   "peak": 0.323,
+   "bands": [
+    0.632,
+    0.014,
+    0.0,
+    0.012,
+    0.131,
+    0.301
+   ],
+   "ra": 133.80721,
+   "dec": -7.29017,
+   "kind": "hot",
+   "why": "Brightest at short wavelengths: light from a star's hot surface, with little dust in the way."
+  },
+  {
+   "id": 105,
+   "col": 110,
+   "row": 73,
+   "rgb": [
+    0.334,
+    0.161,
+    0.166
+   ],
+   "peak": 0.334,
+   "bands": [
+    0.151,
+    0.181,
+    0.206,
+    0.115,
+    0.421,
+    0.247
+   ],
+   "ra": 133.67006,
+   "dec": -7.24195,
+   "kind": "dusty",
+   "why": "Brightest at 3.8-5 um: a cool, dusty source, perhaps a young star still in its birth cloud, or a reddened background star."
+  },
+  {
+   "id": 106,
+   "col": 45,
+   "row": 120,
+   "rgb": [
+    0.328,
+    0.23,
+    0.303
+   ],
+   "peak": 0.328,
+   "bands": [
+    0.275,
+    0.332,
+    0.329,
+    0.132,
+    0.239,
+    0.416
+   ],
+   "ra": 133.78291,
+   "dec": -7.3229,
+   "kind": "flat",
+   "why": "About equally bright across 0.75-5 um: a bright star, or a spot of glowing gas and dust."
+  }
+ ],
+ "landmarks": [],
+ "from_coords": false,
+ "pmra": -8118.0,
+ "pmdec": 680.0,
+ "distance": null,
+ "otype": null,
+ "type_label": null,
+ "category": "Other"
+}

@@ -86,6 +86,13 @@ def stretch(a):
     return np.nan_to_num(x, nan=0.0)
 
 
+def inferno(x):
+    """0..1 -> RGB with the 'inferno' colours the team's original six-panel figure used."""
+    cols = [(0, 0, 4), (40, 11, 84), (101, 21, 110), (159, 42, 99), (212, 72, 66), (245, 125, 21), (250, 193, 39), (252, 255, 164)]
+    xs = np.linspace(0, 1, len(cols))
+    return np.stack([np.interp(x, xs, [c[i] / 255 for c in cols]) for i in range(3)], -1)
+
+
 UPSCALE = 4      # PNGs are saved 4x larger with Lanczos so the 3D map shows them smoothly
 
 
@@ -139,6 +146,7 @@ def export_target(name, say, fov=0.25):
     imgs = {}
     for d in range(1, 7):
         say("download", f"Downloading detector {d} of 6")
+        A._prog(outer=(d - 1, 6), stage="search", done=0, total=0)
         try:
             n, fl = A.build_frames_locked(round(ra, 6), round(dec, 6), fov, scale, 1, d,
                                           round(pmra, 3), round(pmdec, 3), round(epoch, 2), True)
@@ -151,13 +159,14 @@ def export_target(name, say, fov=0.25):
             imgs[d] = f
     if not imgs:
         raise RuntimeError("No SPHEREx exposure covers this position (or IRSA is throttling; wait a minute and retry).")
+    A._prog(outer=None, stage="done")
     say("export", "Making the pictures")
     slug = slug_of(name)
     out = os.path.join(NEB, slug)
     os.makedirs(out, exist_ok=True)
     layers = {d: stretch(f["image"]) for d, f in imgs.items()}
     for d, s in layers.items():
-        save_png(s, os.path.join(out, f"layer_D{d}.png"), "L")
+        save_png(inferno(s), os.path.join(out, f"layer_D{d}.png"), "RGB")
     z = np.zeros_like(next(iter(layers.values())))
     g = lambda *ds: np.mean([layers[d] for d in ds if d in layers], axis=0) if any(d in layers for d in ds) else z
     rgb = np.stack([g(5, 6), g(3, 4), g(1, 2)], axis=-1)
