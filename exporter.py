@@ -71,16 +71,27 @@ def classify_and_distance(name):
 
 
 def stretch(a):
-    from astropy.visualization import ZScaleInterval
+    """Dark sky, bright stars: black a little above the sky level (hides the noise),
+    white at the 99.7th percentile, asinh in between."""
+    import app as A
+    a = A.fill_small_holes(a)
     v = a[np.isfinite(a)]
     if v.size < 10:
         return np.zeros_like(a)
-    lo, hi = ZScaleInterval().get_limits(v)
-    if hi <= lo:
-        hi = lo + 1e-9
+    med = float(np.median(v))
+    sig = float(1.4826 * np.median(np.abs(v - med))) or 1e-9
+    lo, hi = med + 0.3 * sig, max(float(np.percentile(v, 99.7)), med + 10 * sig)
     x = np.clip((a - lo) / (hi - lo), 0, 1)
-    x = np.arcsinh(8 * x) / np.arcsinh(8)
+    x = np.arcsinh(12 * x) / np.arcsinh(12)
     return np.nan_to_num(x, nan=0.0)
+
+
+UPSCALE = 4      # PNGs are saved 4x larger with Lanczos so the 3D map shows them smoothly
+
+
+def save_png(arr01, path, mode):
+    im = Image.fromarray((np.flipud(np.clip(arr01, 0, 1)) * 255).round().astype(np.uint8), mode)
+    im.resize((im.width * UPSCALE, im.height * UPSCALE), Image.LANCZOS).save(path, optimize=True)
 
 
 def box_blur(a, r):
@@ -146,11 +157,11 @@ def export_target(name, say, fov=0.25):
     os.makedirs(out, exist_ok=True)
     layers = {d: stretch(f["image"]) for d, f in imgs.items()}
     for d, s in layers.items():
-        Image.fromarray((np.flipud(s) * 255).round().astype(np.uint8), "L").save(os.path.join(out, f"layer_D{d}.png"))
+        save_png(s, os.path.join(out, f"layer_D{d}.png"), "L")
     z = np.zeros_like(next(iter(layers.values())))
     g = lambda *ds: np.mean([layers[d] for d in ds if d in layers], axis=0) if any(d in layers for d in ds) else z
     rgb = np.stack([g(5, 6), g(3, 4), g(1, 2)], axis=-1)
-    Image.fromarray((np.flipud(np.clip(rgb, 0, 1)) * 255).round().astype(np.uint8), "RGB").save(os.path.join(out, "composite.png"))
+    save_png(rgb, os.path.join(out, "composite.png"), "RGB")
     ny, nx = rgb.shape[:2]
     from datetime import datetime, timedelta
     meta = []

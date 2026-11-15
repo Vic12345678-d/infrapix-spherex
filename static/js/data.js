@@ -76,6 +76,13 @@ export const PLANETS = [
     texture: { kind: 'banded', colors: ['#3d5fd0', '#5a7ee6', '#2f4fb8', '#6b8cf0'], seed: 88, bands: 6, turb: 0.8 },
     description: 'The farthest planet. It has the fastest winds in the solar system, above 2,000 km/h.',
   },
+  {
+    name: 'Pluto', type: 'Dwarf planet', color: '#d9c6a8',
+    a: 39.48211675, e: 0.2488273, i: 17.14001206, L: 238.92903833, peri: 224.06891629, node: 110.30393684,
+    radiusKm: 1188.3, tilt: 122.53, dayHours: -153.29, moons: '5',
+    texture: { kind: 'rocky', colors: ['#7d6650', '#eadbc4'], seed: 101, freq: 4 },
+    description: 'Found in 1930 by Clyde Tombaugh with a blink comparator, the same technique Infrapix uses. Its orbit is so eccentric and tilted that it sometimes comes closer to the Sun than Neptune.',
+  },
 ];
 
 export const MOON = {

@@ -51,9 +51,11 @@ function sceneDistance(rAu) {
 }
 
 // Ecliptic (AU) -> scene coordinates. Ecliptic plane = XZ, ecliptic north = +Y.
-function toScene(v, out = new THREE.Vector3()) {
+// The compressed view shrinks each orbit as a whole (by its semi-major axis `a`),
+// so every orbit keeps its true elliptical shape with the Sun at one focus.
+function toScene(v, a, out = new THREE.Vector3()) {
   const r = Math.hypot(v.x, v.y, v.z);
-  const s = sceneDistance(r) / r;
+  const s = state.scale === 'true' || !a ? sceneDistance(r) / r : sceneDistance(a) / a;
   return out.set(v.x * s, v.z * s, -v.y * s);
 }
 
@@ -347,7 +349,7 @@ function buildOrbitLines() {
     if (b.kind !== 'planet') continue;
     const pts = [];
     const N = 720;
-    for (let k = 0; k <= N; k++) pts.push(toScene(positionFromE(b.data, (k / N) * Math.PI * 2)));
+    for (let k = 0; k <= N; k++) pts.push(toScene(positionFromE(b.data, (k / N) * Math.PI * 2), b.data.a));
     b.orbitLine.geometry.dispose();
     b.orbitLine.geometry = new THREE.BufferGeometry().setFromPoints(pts);
   }
@@ -366,8 +368,8 @@ function buildSweep() {
     for (let k = 0; k < STEPS; k++) {
       const m0 = ((s + k / STEPS) / SECTORS) * Math.PI * 2;
       const m1 = ((s + (k + 1) / STEPS) / SECTORS) * Math.PI * 2;
-      const a = toScene(positionAtMeanAnomaly(b.data, m0));
-      const d = toScene(positionAtMeanAnomaly(b.data, m1));
+      const a = toScene(positionAtMeanAnomaly(b.data, m0), b.data.a);
+      const d = toScene(positionAtMeanAnomaly(b.data, m1), b.data.a);
       pos.push(0, 0, 0, a.x, a.y, a.z, d.x, d.y, d.z);
       for (let v = 0; v < 3; v++) col.push(c.r, c.g, c.b);
     }
@@ -399,7 +401,7 @@ function updatePositions() {
   for (const b of bodies) {
     if (b.kind !== 'planet') continue;
     b.helio = positionAt(b.data, state.days);
-    toScene(b.helio, b.group.position);
+    toScene(b.helio, b.data.a, b.group.position);
   }
   // Moon: simple circular orbit, inclined 5°, around Earth.
   const L = (MOON.L0 + (360 / MOON.periodDays) * state.days) * DEG;
@@ -1708,4 +1710,4 @@ window.addEventListener('message', (e) => {
   if (b) { focusOn(b.data.name); return; }
   if (!search.job) startFetch(q);
 });
-if (window.self !== window.top) document.querySelectorAll('.brand-back').forEach((a) => { a.hidden = true; });
+if (window.self !== window.top) document.documentElement.classList.add('framed');

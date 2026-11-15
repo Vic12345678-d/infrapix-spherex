@@ -213,11 +213,22 @@ function arrow(c, x, y, dx, dy, lab) {
   c.font = `11px ${FONT}`; c.textAlign = 'center'; c.fillText(lab, x + dx * 1.5, y + dy * 1.5 + 4);
 }
 
+// Each picture gets as much room as the panel allows: two side by side, as tall as fits.
+function viewSize() {
+  const body = document.querySelector('#blinkPanel .bl-body');
+  const bw = body ? body.clientWidth : innerWidth * 0.8;
+  const bh = body ? body.clientHeight : innerHeight * 0.5;
+  const byW = (bw - 14) / 2 - M.l - M.r - M.cb / 2;
+  const tr = document.getElementById('blTransport');
+  const byH = bh - M.t - M.b - 40 - (tr ? tr.offsetHeight + 40 : 120);
+  return Math.round(Math.max(240, Math.min(620, byW, byH)));
+}
+
 function panel(cv, img, f, isDiff) {
-  const base = Math.max(280, Math.min(440, innerHeight - 520)), z = Math.max(2, Math.round(base / D.n)), w = D.n * z, cd = Math.cos(f.cdec * Math.PI / 180);
+  const base = viewSize(), z = Math.max(1, base / D.n), w = D.n * z, cd = Math.cos(f.cdec * Math.PI / 180);
   const cw = w + M.l + M.r + (isDiff ? M.cb : 0), ch = w + M.t + M.b;
   const c = prep(cv, cw, ch);
-  c.fillStyle = '#060a14'; c.fillRect(0, 0, cw, ch);
+  c.clearRect(0, 0, cw, ch);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
   c.drawImage(img, M.l, M.t, w, w);
   c.strokeStyle = '#475569'; c.lineWidth = 1; c.strokeRect(M.l, M.t, w, w);
@@ -276,7 +287,7 @@ function panel(cv, img, f, isDiff) {
   arrow(c, M.l + w - 16, M.t + 40, 0, -24, 'N'); arrow(c, M.l + w - 16, M.t + 40, -24, 0, 'E');
   if (isDiff) {
     const bx = M.l + w + 14, g = c.createLinearGradient(0, M.t, 0, M.t + w);
-    g.addColorStop(0, '#b2182b'); g.addColorStop(0.5, '#f7f7f7'); g.addColorStop(1, '#2166ac');
+    g.addColorStop(0, '#ffd6a0'); g.addColorStop(0.2, '#c83c28'); g.addColorStop(0.35, '#080a14'); g.addColorStop(0.65, '#080a14'); g.addColorStop(0.8, '#285ad2'); g.addColorStop(1, '#5aaaff');
     c.fillStyle = g; c.fillRect(bx, M.t, 12, w); c.strokeStyle = '#475569'; c.strokeRect(bx, M.t, 12, w);
     c.fillStyle = '#94a3b8'; c.font = `10px ${FONT}`; c.textAlign = 'left';
     c.fillText('+5σ', bx + 16, M.t + 8); c.fillText('0', bx + 16, M.t + w / 2 + 3); c.fillText('−5σ', bx + 16, M.t + w - 2);
@@ -285,10 +296,10 @@ function panel(cv, img, f, isDiff) {
 
 function motionText() {
   const pm = Math.hypot(D.pmra, D.pmdec) / 1000, F = D.frames, span = F[F.length - 1].year - F[0].year;
-  if (!pm) return 'No proper motion is set, so this object is treated as fixed on the sky. Anything that changes between frames is then a change in brightness or an artefact. Teal pixels are masked (no data), not sky.';
+  if (!pm) return 'No proper motion is set, so this object is treated as fixed on the sky. Anything that changes between frames is then a change in brightness or an artefact. Slate-blue areas are masked (no data), not sky.';
   const dist = pm * span, pa = (Math.atan2(D.pmra, D.pmdec) * 180 / Math.PI + 360) % 360;
   const dirs = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
-  return `Expected motion: <b>${pm.toFixed(2)}″ per year</b> toward ${dirs[Math.round(pa / 45) % 8]}. Across these frames (${mjdDate(F[0].mjd)} to ${mjdDate(F[F.length - 1].mjd)}, ${span.toFixed(2)} years) it moves <b>${dist.toFixed(1)}″ = ${(dist / SCALE).toFixed(1)} pixels</b>. Teal pixels are masked (no data).`;
+  return `Expected motion: <b>${pm.toFixed(2)}″ per year</b> toward ${dirs[Math.round(pa / 45) % 8]}. Across these frames (${mjdDate(F[0].mjd)} to ${mjdDate(F[F.length - 1].mjd)}, ${span.toFixed(2)} years) it moves <b>${dist.toFixed(1)}″ = ${(dist / SCALE).toFixed(1)} pixels</b>. Slate-blue areas are masked (no data).`;
 }
 
 function show(i) {
@@ -427,3 +438,10 @@ export function initBlink({ onToggle } = {}) {
     else openBlink({ name });
   }
 }
+
+// Re-fit the pictures when the window (or the embedding page) changes size.
+let _rs;
+window.addEventListener('resize', () => {
+  clearTimeout(_rs);
+  _rs = setTimeout(() => { if (D && document.getElementById('blinkPanel')?.classList.contains('open')) show(idx); }, 150);
+});

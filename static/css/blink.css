@@ -15,7 +15,7 @@ body.blink-open .search-wrap { z-index: 30; }
 body.blink-open .rail, body.blink-open #info, body.blink-open .transport, body.blink-open .timeline { visibility: hidden; }
 
 .bl-head { display: flex; justify-content: space-between; gap: 16px; padding-right: 40px; }
-.bl-head h2 { margin: 0; font-family: var(--serif); font-size: var(--t-2xl); font-weight: 400; line-height: 1; }
+.bl-head h2 { margin: 0; font-family: var(--serif); font-size: var(--t-lg); font-weight: 600; letter-spacing: 0.03em; line-height: 1; }
 .bl-status { margin: 6px 0 0; font-size: var(--t-sm); color: var(--sun); min-height: 1.3em; }
 .bl-status.err { color: #ff8a7a; }
 #blClose { top: 18px; right: 18px; }

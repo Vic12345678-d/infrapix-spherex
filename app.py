@@ -462,22 +462,47 @@ def bin_frames(frames, days):
 
 
 # ============================================================== 6. PICTURES
-MASKED_RGB = (20, 90, 110)      # teal = masked / no data (so it is not mistaken for dark sky)
+MASKED_RGB = (30, 46, 66)       # slate blue = masked / no data (so it is not mistaken for dark sky)
+
+
+def fill_small_holes(a):
+    """Display only: a lone bad pixel (cosmic ray, hot pixel) is filled with the mean
+    of its neighbours, so the picture is not peppered with masked dots. Larger
+    masked areas (no data) stay masked."""
+    a = np.asarray(a, float)
+    bad = ~np.isfinite(a)
+    if not bad.any():
+        return a
+    p = np.pad(a, 1, constant_values=np.nan)
+    nb = np.stack([p[1 + dy:p.shape[0] - 1 + dy, 1 + dx:p.shape[1] - 1 + dx]
+                   for dy in (-1, 0, 1) for dx in (-1, 0, 1) if dy or dx])
+    good = np.isfinite(nb)
+    cnt = good.sum(0)
+    mean = np.where(good, nb, 0).sum(0) / np.maximum(cnt, 1)
+    out = a.copy()
+    fill = bad & (cnt >= 5)
+    out[fill] = mean[fill]
+    return out
 
 
 def zlimits(a):
-    """DS9-style ZScale limits (same stretch as the team's spherex_fetch.py)."""
+    """Display limits: black just below the sky level (so the sky is dark, not grey),
+    white at the brighter of DS9 ZScale's top and the 99.5th percentile."""
     from astropy.visualization import ZScaleInterval
     v = np.asarray(a, float)
     v = v[np.isfinite(v)]
     if v.size < 10:
         return 0.0, 1.0
-    lo, hi = ZScaleInterval().get_limits(v)
+    med = float(np.median(v))
+    sig = float(1.4826 * np.median(np.abs(v - med))) or 1e-9
+    _, zhi = ZScaleInterval().get_limits(v)
+    lo, hi = med - 1.0 * sig, max(float(zhi), float(np.percentile(v, 99.5)), med + 6 * sig)
     return (lo, hi) if hi > lo else (float(v.min()), float(v.max()) + 1e-9)
 
 
 def gray_u8(a, lo, hi, diff):
     """Greyscale (RGB) picture; masked pixels are teal."""
+    a = fill_small_holes(a)
     if diff:
         x = np.clip(0.5 + a / (hi - lo + 1e-12), 0, 1)
     else:
@@ -491,18 +516,22 @@ def gray_u8(a, lo, hi, diff):
 
 
 def diverge_rgb(a, s):
-    """Blue (fainter) - white - red (brighter), saturating at +-5 sigma. Masked = teal."""
-    x = np.clip(a / (5 * s), -1, 1)
+    """Blue (fainter) - black (no change) - red (brighter), saturating at +-5 sigma."""
+    x = np.clip(fill_small_holes(a) / (5 * s), -1, 1)
     bad = ~np.isfinite(x)
     x = np.nan_to_num(x, nan=0.0)
-    ch = [np.interp(x, [-1, 0, 1], c) for c in ([33, 247, 178], [102, 247, 24], [172, 247, 43])]
+    # changes smaller than ~1.5 sigma are noise: keep them near black so real changes stand out
+    x = np.sign(x) * np.clip((np.abs(x) - 0.3) / 0.7, 0, 1) ** 0.7
+    ch = [np.interp(x, [-1, -0.5, 0, 0.5, 1], c) for c in
+          ([90, 40, 8, 200, 255], [170, 90, 10, 60, 214], [255, 210, 20, 40, 160])]
     rgb = np.stack(ch, axis=-1).astype(np.uint8)
     rgb[bad] = MASKED_RGB
     return np.flipud(rgb)
 
 
 def inferno_rgb(a):
-    """Black-purple-orange-yellow colour map (like matplotlib 'inferno'). Masked = teal."""
+    """Black-purple-orange-yellow colour map (like matplotlib 'inferno')."""
+    a = fill_small_holes(a)
     lo, hi = zlimits(a)
     x = np.clip((a - lo) / (hi - lo + 1e-12), 0, 1)
     x = np.arcsinh(10 * x) / np.arcsinh(10)
