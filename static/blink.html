@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPHEREx Blink</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--line:#30363d;--fg:#e6edf3;--mut:#8b949e;--acc:#58a6ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif}
+header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+h1{font-size:17px;margin:0}header span{color:var(--mut)}
+main{display:grid;grid-template-columns:290px minmax(0,1fr) 340px;gap:12px;padding:12px}
+@media(max-width:1200px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+label{display:block;margin:8px 0 2px;color:var(--mut);font-size:12px}
+input,select,button,a.btn{width:100%;background:#0d1117;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;text-decoration:none;display:block;text-align:center}
+button,a.btn{cursor:pointer;background:#21262d}button.pri{background:#1f6feb;border-color:#1f6feb}
+.row{display:flex;gap:6px}.row>*{flex:1}.chk{display:flex;align-items:center;gap:6px;margin-top:8px}.chk input{width:auto}
+.fig{background:#fff;color:#222;border-radius:6px;padding:10px 8px 6px;text-align:center}
+.fig .sup{font-weight:700;font-size:14px}.fig .sub{font-weight:700;font-size:12px;margin-bottom:6px}
+#ttl{font-weight:600;font-size:13px;margin:6px 0 2px;color:#222}
+.two{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.two>div{text-align:center}
+.cap{font-size:12px;margin-bottom:2px;color:#222}.red{color:#c0392b}.blue{color:#2166ac}
+canvas{max-width:100%}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.grid3 canvas{width:100%}
+.gt{font-size:11px;color:#222;margin-bottom:2px;min-height:28px}
+#state{color:#888;font-size:11px;margin:4px 0}
+#info{color:var(--mut);font-size:12px;margin:8px 0;min-height:30px;text-align:center}#status{color:var(--acc);min-height:18px;margin-top:6px}
+#aladin{height:240px;margin-top:6px;border-radius:6px;overflow:hidden}
+#links a{display:block;color:var(--acc);font-size:12px;margin:3px 0;text-decoration:none}
+h3{margin:0 0 6px;font-size:13px}.plot{width:100%;height:190px;background:#0d1117;border-radius:6px;margin-bottom:10px}
+.presets button{margin:2px 0;font-size:12px}.hint{color:var(--mut);font-size:11px;text-align:center;margin-top:4px}
+</style></head><body>
+<header><h1>SPHEREx Blink</h1><span>Flip through time to spot moving objects. Data: NASA/IPAC IRSA, Gaia, AllWISE</span></header>
+<main>
+<section class="panel">
+  <label>Object name (SIMBAD)</label>
+  <div class="row"><input id="name" placeholder="e.g. Barnard's Star"><button id="go" style="max-width:60px">Find</button></div>
+  <div class="row"><div><label>RA (deg)</label><input id="ra" type="number" step="any"></div>
+  <div><label>Dec (deg)</label><input id="dec" type="number" step="any"></div></div>
+  <div class="row"><div><label>Proper motion RA (mas/yr)</label><input id="pmra" type="number" step="any" value="0"></div>
+  <div><label>Proper motion Dec (mas/yr)</label><input id="pmdec" type="number" step="any" value="0"></div></div>
+  <div class="row"><div><label>Epoch of RA/Dec</label><input id="epoch" type="number" step="0.1" value="2026"></div>
+  <div><label>Max frames</label><input id="maxf" type="number" value="12" min="6" max="150"></div></div>
+  <div class="row"><div><label>Field of view (deg)</label><input id="fov" type="number" step="0.01" value="0.2" min="0.01" max="0.3"></div>
+  <div><label>Pixel scale (&Prime;)</label><input id="scale" type="number" step="0.1" value="6.2" min="1.5" max="6.2"></div></div>
+  <div class="row"><div><label>Detector (colour of light)</label><select id="det"><option value="0">All (flickers)</option>
+    <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
+  <div><label>Stack within (days)</label><input id="bin" type="number" step="1" value="0" min="0"></div></div>
+  <label>Left panel shows</label><select id="mode"><option value="raw">The image (background-subtracted)</option>
+    <option value="sub_median">Image minus median of all frames</option><option value="sub_first">Image minus first date</option></select>
+  <div class="chk"><input type="checkbox" id="gaia"><span>Gaia DR3 stars (yellow circles)</span></div>
+  <div class="chk"><input type="checkbox" id="wise"><span>AllWISE sources (magenta squares)</span></div>
+  <div class="chk"><input type="checkbox" id="follow"><span>Keep the object centred (stars drift instead)</span></div>
+  <div class="chk"><input type="checkbox" id="cross" checked><span>Show target circle</span></div>
+  <div class="chk"><input type="checkbox" id="invert"><span>Invert left panel</span></div>
+  <button class="pri" id="load" style="margin-top:12px">Load frames</button>
+  <div id="status"></div>
+  <label>Test targets</label>
+  <div class="presets">
+    <button data-n="Barnard's Star">Barnard's Star</button>
+    <button data-n="eps Ind Ba">Epsilon Indi B</button>
+    <button data-n="WISE J085510.83-071442.5" data-c="133.795129,-7.245147">WISE 0855-0714</button>
+    <button data-n="RW Aur">RW Aurigae</button>
+    <button data-n="R Dra">R Draconis</button>
+  </div>
+  <label>Background map (Aladin)</label>
+  <select id="survey"><option value="P/allWISE/color">AllWISE (infrared)</option>
+    <option value="P/2MASS/color">2MASS (near-infrared)</option><option value="P/DSS2/color">DSS2 (optical)</option></select>
+  <div id="aladin"></div>
+  <label>More data sources</label>
+  <div id="links"></div>
+</section>
+<section class="panel" id="view">
+  <div class="row" style="margin-bottom:8px"><button id="tabBlink" class="pri">Blink over time</button><button id="tabGrid">Colours: one per detector</button></div>
+  <div id="blinkView">
+    <div class="fig">
+      <div class="sup">Blink comparator - same patch of sky, frames aligned north-up</div>
+      <div class="sub">(things that jump or flicker between frames moved or changed brightness)</div>
+      <div id="ttl">Enter coordinates or a name, then Load.</div>
+      <div class="two">
+        <div><div class="cap">&nbsp;<br>&nbsp;</div><canvas id="cv" width="300" height="300"></canvas></div>
+        <div><div class="cap">Difference from the average frame<br><span class="red">red = brighter than usual</span> &nbsp;|&nbsp; <span class="blue">blue = fainter than usual</span></div><canvas id="cv2" width="300" height="300"></canvas></div>
+      </div>
+      <div id="state">SPACE = pause/play &nbsp;&nbsp; LEFT / RIGHT = step</div>
+    </div>
+    <div id="info"></div>
+    <div class="hint" style="max-width:640px;margin:0 auto 6px">How to read it: the cyan circle marks your object on each date. With &ldquo;Follow the object&rdquo; on, the object stays in the circle and the background stars slide past; with it off, the stars stay put and the circle moves. The cyan line is the object's path across all dates. The right panel shows only what changed: red = brighter than the average frame, blue = fainter, so a mover shows as a red spot next to a blue one.</div>
+    <div class="row"><button id="prev">&#9664;</button><button id="play">&#9654; Play</button><button id="next">&#9654;&#9654;</button></div>
+    <input id="slider" type="range" min="0" max="0" value="0" style="margin-top:8px">
+    <div class="row"><div><label>Speed (fps)</label><input id="fps" type="range" min="1" max="20" value="3"></div>
+    <div><label>Zoom</label><input id="zoom" type="range" min="2" max="8" step="1" value="4"></div></div>
+    <div class="row" style="margin-top:8px"><a class="btn" id="gif" href="#">&#11015; Save blink as GIF</a></div>
+  </div>
+  <div id="gridView" style="display:none">
+    <div class="fig">
+      <div class="sup">SPHEREx exposures of your target, sorted from short to long infrared wavelength</div>
+      <div class="sub">(each panel = one exposure; brighter = more light; cyan circle = your target)</div>
+      <div id="gridBox" class="grid3"></div>
+    </div>
+    <div id="gridStatus" class="hint">Open this tab after entering a target.</div>
+  </div>
+</section>
+<section class="panel">
+  <h3>Spectrum at target (all exposures)</h3><canvas id="spec" class="plot" width="320" height="190"></canvas>
+  <h3>Light curve at target</h3><canvas id="lc" class="plot" width="320" height="190"></canvas>
+  <div style="color:var(--mut);font-size:12px">Each point is a ~7&Prime; aperture that follows the object's proper motion. Colours = detector 1&ndash;6.
+  Shared link: <a id="link" style="color:var(--acc)" href="#">copy URL</a></div>
+</section>
+</main>
+<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+<script>
+const $=id=>document.getElementById(id);
+const API=new URLSearchParams(location.search).get("api")||"";   // base URL of the backend (empty = same server)
+const COL=["#888","#58a6ff","#3fb950","#d29922","#f85149","#bc8cff","#39c5cf"];
+const BAND={1:[0.75,1.09],2:[1.10,1.62],3:[1.63,2.41],4:[2.42,3.82],5:[3.83,4.41],6:[4.42,5.00]};
+const M={l:66,b:42,t:6,r:8,cb:74};
+let busy=false,gbusy=false,D=null,G=null,imgs=[],imgs2=[],idx=0,timer=null,gaia=[],wise=[],aladin=null;
+
+function setStatus(t){$("status").textContent=t}
+function params(){return new URLSearchParams({ra:$("ra").value,dec:$("dec").value,fov:$("fov").value,
+  scale:$("scale").value,detector:$("det").value,bin_days:$("bin").value,mode:$("mode").value,
+  max_frames:$("maxf").value,pmra:$("pmra").value||0,pmdec:$("pmdec").value||0,epoch:$("epoch").value||2026,follow:$("follow").checked?1:0})}
+function gifLink(){$("gif").href=API+"/api/gif?"+params()+"&interval_ms="+Math.round(1000/$("fps").value)}
+function links(){const ra=$("ra").value,dec=$("dec").value;if(!ra||!dec)return;const s=Math.round($("fov").value*3600);
+  $("links").innerHTML=[["WiseView (WISE movie)",`http://byw.tools/wiseview#ra=${ra}&dec=${dec}&size=${s}&band=2`],
+   ["SIMBAD",`https://simbad.cds.unistra.fr/simbad/sim-coo?Coord=${ra}+${dec}&Radius=2&Radius.unit=arcmin`],
+   ["Gaia archive","https://gea.esac.esa.int/archive/"],["IRSA SPHEREx","https://irsa.ipac.caltech.edu/Missions/spherex.html"],
+   ["CADC archive","https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/"],["NEOSSat data","https://data.asc-csa.gc.ca/dataset/neossat"]]
+   .map(([t,h])=>`<a href="${h}" target="_blank" rel="noopener">${t} &#8599;</a>`).join("")}
+function pushURL(){const p=params();p.set("gaia",$("gaia").checked?1:0);p.set("wise",$("wise").checked?1:0);
+  history.replaceState(null,"","?"+p.toString());$("link").href=location.href;gifLink();links()}
+function readURL(){const p=new URLSearchParams(location.search);
+  const m={ra:"ra",dec:"dec",fov:"fov",scale:"scale",detector:"det",bin_days:"bin",mode:"mode",max_frames:"maxf",pmra:"pmra",pmdec:"pmdec",epoch:"epoch"};
+  if(p.has("follow"))$("follow").checked=p.get("follow")==="1";
+  for(const k in m)if(p.has(k))$(m[k]).value=p.get(k);
+  if(p.get("gaia")==="1")$("gaia").checked=true;if(p.get("wise")==="1")$("wise").checked=true;
+  return p.has("ra")&&p.has("dec")}
+
+async function jget(url){const r=await fetch(url.startsWith("/api")?API+url:url);if(!r.ok){let m=r.statusText;
+  try{m=(await r.json()).detail||m}catch(e){}throw new Error(m)}return r.json()}
+async function resolve(name){setStatus("Looking up "+name+"…");
+  const c=await jget("/api/resolve?name="+encodeURIComponent(name)+"&epoch="+($("epoch").value||2026));
+  $("ra").value=c.ra.toFixed(6);$("dec").value=c.dec.toFixed(6);
+  $("pmra").value=c.pmra.toFixed(1);$("pmdec").value=c.pmdec.toFixed(1);
+  const mu=Math.hypot(c.pmra,c.pmdec)/1000;
+  setStatus(!c.pm_found?"Position found, but SIMBAD lists no proper motion for this object. If it moves, type it in the Proper motion boxes.":(mu>0.01?`Moved to epoch ${c.epoch}: proper motion ${mu.toFixed(2)}″/yr`:"Position found; proper motion is negligible"));links()}
+// Where the object is on a frame's date, in arcsec east/north of that frame's centre.
+function objOffset(S,f){const dt=f.year-S.epoch,cd=Math.cos(f.cdec*Math.PI/180);
+  const ora=S.ra+S.pmra*dt/3.6e6/Math.cos(S.dec*Math.PI/180),odec=S.dec+S.pmdec*dt/3.6e6;
+  return [(ora-f.cra)*cd*3600,(odec-f.cdec)*3600]}
+const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=src});
+
+let again=false;
+async function overlays(){
+  if(!D)return;const q=`ra=${D.ra}&dec=${D.dec}&fov=${D.fov}`;
+  gaia=$("gaia").checked?await jget("/api/gaia?"+q).catch(()=>[]):[];
+  wise=$("wise").checked?await jget("/api/wise?"+q).catch(()=>[]):[];
+  show(idx)}
+async function load(){
+  if(busy){again=true;return}
+  if(!$("ra").value||!$("dec").value){setStatus("Need RA and Dec");return}
+  busy=true;stop();pushURL();$("load").disabled=true;G=null;
+  setStatus("Searching IRSA, downloading cutouts, reprojecting… (first load can take several minutes)");
+  try{
+    D=await jget("/api/frames?"+params());
+    imgs=await Promise.all(D.frames.map(f=>loadImg(f.png)));
+    imgs2=await Promise.all(D.frames.map(f=>loadImg(f.diff)));
+    gaia=[];wise=[];
+    $("slider").max=imgs.length-1;idx=0;show(0);moveAladin();
+    setStatus(`${imgs.length} frames shown (${D.total} exposures sampled)`);
+    if($("gridView").style.display!=="none")loadGrid();
+    overlays();
+  }catch(e){setStatus("Error: "+e.message)}
+  $("load").disabled=false;busy=false;
+  if(again){again=false;load()}}
+
+function mjdDate(m){return new Date((m-40587)*86400000).toISOString().slice(0,10)}
+const fmt=(v,n=4)=>v.toFixed(n)+"°";
+
+function arrow(c,x,y,dx,dy,lab){c.strokeStyle=c.fillStyle="#fff";c.lineWidth=1.2;
+  c.beginPath();c.moveTo(x,y);c.lineTo(x+dx,y+dy);c.stroke();
+  const a=Math.atan2(dy,dx);c.beginPath();c.moveTo(x+dx,y+dy);
+  c.lineTo(x+dx-5*Math.cos(a-.5),y+dy-5*Math.sin(a-.5));c.lineTo(x+dx-5*Math.cos(a+.5),y+dy-5*Math.sin(a+.5));c.fill();
+  c.font="10px sans-serif";c.fillText(lab,x+dx*1.45-3,y+dy*1.45+4)}
+
+function panel(cv,img,f,isLeft){
+  const z=+$("zoom").value,w=D.n*z,cd=Math.cos(f.cdec*Math.PI/180);
+  cv.width=w+M.l+M.r+(isLeft?0:M.cb);cv.height=w+M.t+M.b;const c=cv.getContext("2d");
+  c.fillStyle="#fff";c.fillRect(0,0,cv.width,cv.height);
+  c.imageSmoothingEnabled=true;c.imageSmoothingQuality="high";
+  c.drawImage(img,M.l,M.t,w,w);
+  if(isLeft&&$("invert").checked){c.globalCompositeOperation="difference";c.fillStyle="#fff";c.fillRect(M.l,M.t,w,w);c.globalCompositeOperation="source-over"}
+  c.strokeStyle="#444";c.lineWidth=1;c.strokeRect(M.l,M.t,w,w);
+  c.fillStyle="#444";c.font="10px sans-serif";
+  [0.15,0.5,0.85].forEach(k=>{
+    const px=M.l+k*w,py=M.t+k*w,dE=(0.5-k)*D.n*D.scale,dN=(0.5-k)*D.n*D.scale;
+    c.beginPath();c.moveTo(px,M.t+w);c.lineTo(px,M.t+w+4);c.stroke();
+    c.textAlign="center";c.fillText(fmt(f.cra+dE/3600/cd),px,M.t+w+15);
+    c.beginPath();c.moveTo(M.l,py);c.lineTo(M.l-4,py);c.stroke();
+    c.textAlign="right";c.fillText(fmt(f.cdec+dN/3600),M.l-7,py+3)});
+  c.textAlign="center";c.fillStyle="#222";c.font="11px sans-serif";
+  c.fillText("Right Ascension  (East is LEFT)",M.l+w/2,cv.height-5);
+  c.save();c.translate(12,M.t+w/2);c.rotate(-Math.PI/2);if(isLeft)c.fillText("Declination  (North is UP)",0,0);c.restore();
+  c.textAlign="left";
+  const cx=M.l+w/2,cy=M.t+w/2;
+  if($("cross").checked){
+    const [oE,oN]=objOffset(D,f),tx=cx-oE/D.scale*z,ty=cy-oN/D.scale*z;
+    c.strokeStyle="#00c8d7";c.lineWidth=1.6;c.setLineDash([4,3]);c.beginPath();
+    c.arc(tx,ty,Math.max(10,w*0.07),0,7);c.stroke();c.setLineDash([])}
+  if($("cross").checked&&!D.follow&&(D.pmra||D.pmdec)){
+    c.strokeStyle="rgba(0,200,215,.9)";c.lineWidth=1;c.beginPath();
+    D.frames.forEach((q,k)=>{const [e,n]=objOffset(D,q),x=cx-e/D.scale*z,y=cy-n/D.scale*z;
+      k?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
+    D.frames.forEach(q=>{const [e,n]=objOffset(D,q);c.fillStyle="rgba(0,200,215,.9)";
+      c.fillRect(cx-e/D.scale*z-1.5,cy-n/D.scale*z-1.5,3,3)})}
+  gaia.forEach(g=>{if(g.ra==null)return;const dt=f.year-2016.0;
+    const dE=((g.ra-f.cra)*cd*3600)+g.pmra*dt/1000,dN=((g.dec-f.cdec)*3600)+g.pmdec*dt/1000;
+    const x=cx-dE/D.scale*z,y=cy-dN/D.scale*z;
+    if(x<M.l||y<M.t||x>M.l+w||y>M.t+w)return;
+    c.strokeStyle="rgba(255,190,0,.95)";c.lineWidth=1.2;c.beginPath();c.arc(x,y,6,0,7);c.stroke();
+    if(g.g!=null&&g.g<15){c.fillStyle="#ffd33d";c.font="10px sans-serif";c.fillText("G"+g.g.toFixed(1),x+8,y-6)}});
+  wise.forEach(g=>{if(g.ra==null)return;const dt=f.year-2010.5;
+    const dE=((g.ra-f.cra)*cd*3600)+g.pmra*dt/1000,dN=((g.dec-f.cdec)*3600)+g.pmdec*dt/1000;
+    const x=cx-dE/D.scale*z,y=cy-dN/D.scale*z;
+    if(x<M.l||y<M.t||x>M.l+w||y>M.t+w)return;
+    c.strokeStyle="#e040fb";c.lineWidth=1.4;c.strokeRect(x-5,y-5,10,10)});
+  const bar=20/D.scale*z;c.strokeStyle=c.fillStyle="#fff";c.lineWidth=2;
+  c.beginPath();c.moveTo(M.l+8,M.t+w-10);c.lineTo(M.l+8+bar,M.t+w-10);c.stroke();
+  c.font="10px sans-serif";c.fillText("20″",M.l+8,M.t+w-14);
+  arrow(c,M.l+w-14,M.t+34,0,-22,"N");arrow(c,M.l+w-14,M.t+34,-22,0,"E");
+  c.lineWidth=1;
+  if(!isLeft){
+    const bx=M.l+w+14,g=c.createLinearGradient(0,M.t,0,M.t+w);
+    g.addColorStop(0,"#b2182b");g.addColorStop(.5,"#f7f7f7");g.addColorStop(1,"#2166ac");
+    c.fillStyle=g;c.fillRect(bx,M.t,12,w);c.strokeStyle="#444";c.strokeRect(bx,M.t,12,w);
+    c.fillStyle="#444";c.font="10px sans-serif";c.textAlign="left";
+    c.fillText("+5σ",bx+16,M.t+8);c.fillText("0",bx+16,M.t+w/2+3);c.fillText("−5σ",bx+16,M.t+w-2);
+    c.save();c.translate(bx+46,M.t+w/2);c.rotate(Math.PI/2);c.textAlign="center";
+    c.fillText("change from the average frame",0,0);c.restore()}}
+
+function show(i){
+  if(!D)return;idx=i;$("slider").value=i;const f=D.frames[i],b=BAND[f.det];
+  panel($("cv"),imgs[i],f,true);panel($("cv2"),imgs2[i],f,false);
+  $("ttl").textContent=`Frame ${i+1} of ${D.frames.length}   |   detector ${f.det||"mixed"}${b?` (${b[0]}–${b[1]} µm)`:""}   |   observed ${mjdDate(f.mjd)}`;
+  $("info").innerHTML=`At the target: λ ≈ ${isFinite(f.wl)?f.wl.toFixed(3):"?"} µm &middot; `+
+   `flux ${f.flux.toFixed(3)} ± ${f.err.toFixed(3)} MJy/sr &middot; ${f.obsid}`;
+  state();plots()}
+function state(){$("state").innerHTML="SPACE = pause/play &nbsp;&nbsp; LEFT / RIGHT = step &nbsp;&nbsp; ("+(timer?"playing":"paused")+")"}
+
+function tab(which){$("blinkView").style.display=which==="blink"?"":"none";$("gridView").style.display=which==="grid"?"":"none";
+  $("tabBlink").className=which==="blink"?"pri":"";$("tabGrid").className=which==="grid"?"pri":"";
+  if(which==="grid"&&!G&&$("ra").value)loadGrid()}
+$("tabBlink").onclick=()=>tab("blink");$("tabGrid").onclick=()=>tab("grid");
+
+async function loadGrid(){
+  if(gbusy)return;gbusy=true;
+  const p=new URLSearchParams({ra:$("ra").value,dec:$("dec").value,fov:$("fov").value,scale:$("scale").value,
+    pmra:$("pmra").value||0,pmdec:$("pmdec").value||0,epoch:$("epoch").value||2026,follow:$("follow").checked?1:0});
+  $("gridStatus").textContent="Fetching one exposure from each detector… (first time can take several minutes)";
+  try{G=await jget("/api/grid?"+p);G.imgs=await Promise.all(G.panels.map(x=>loadImg(x.png)));drawGrid();
+    $("gridStatus").textContent=`${G.panels.length} exposures, one per detector`}
+  catch(e){$("gridStatus").textContent="Error: "+e.message}
+  gbusy=false}
+
+function drawGrid(){
+  const box=$("gridBox");box.innerHTML="";
+  const order=G.panels.map((x,i)=>i).sort((a,b)=>(G.panels[a].wl??9)-(G.panels[b].wl??9));
+  order.forEach(i=>{const P=G.panels[i],b=BAND[P.det],wrap=document.createElement("div");
+    wrap.innerHTML=`<div class="gt">Detector ${P.det}${P.wl!=null?` - target seen at ${P.wl.toFixed(2)} µm`:""}<br>this exposure covers ${b[0]}-${b[1]} µm, ${mjdDate(P.mjd)}</div>`;
+    const cv=document.createElement("canvas");wrap.appendChild(cv);box.appendChild(wrap);gpanel(cv,G.imgs[i],P)})}
+
+function gpanel(cv,img,P){
+  const z=Math.max(3,Math.round(360/G.n)),w=G.n*z,m={l:56,b:36,t:4,r:6},cd=Math.cos(P.cdec*Math.PI/180);
+  cv.width=w+m.l+m.r;cv.height=w+m.t+m.b;const c=cv.getContext("2d");
+  c.fillStyle="#fff";c.fillRect(0,0,cv.width,cv.height);
+  c.imageSmoothingEnabled=true;c.drawImage(img,m.l,m.t,w,w);
+  c.strokeStyle="#444";c.lineWidth=1;c.strokeRect(m.l,m.t,w,w);c.fillStyle="#333";c.font="9px sans-serif";
+  [0.2,0.8].forEach(k=>{const px=m.l+k*w,py=m.t+k*w,d=(0.5-k)*G.n*G.scale;
+    c.beginPath();c.moveTo(px,m.t+w);c.lineTo(px,m.t+w+4);c.stroke();
+    c.textAlign="center";c.fillText(fmt(P.cra+d/3600/cd,3),px,m.t+w+14);
+    c.beginPath();c.moveTo(m.l,py);c.lineTo(m.l-4,py);c.stroke();
+    c.textAlign="right";c.fillText(fmt(P.cdec+d/3600,3),m.l-6,py+3)});
+  c.textAlign="center";c.font="10px sans-serif";c.fillText("Right Ascension (sky longitude)",m.l+w/2,cv.height-4);
+  c.save();c.translate(10,m.t+w/2);c.rotate(-Math.PI/2);c.fillText("Declination (sky latitude)",0,0);c.restore();
+  const cx=m.l+w/2,cy=m.t+w/2,[oE,oN]=objOffset(G,P);
+  const tx=cx-oE/G.scale*z,ty=cy-oN/G.scale*z;
+  c.strokeStyle="#00e5e5";c.lineWidth=1.8;c.beginPath();c.arc(tx,ty,Math.max(9,w*0.06),0,7);c.stroke();
+  c.textAlign="left";arrow(c,m.l+w-14,m.t+w-8,0,-22,"N");arrow(c,m.l+w-14,m.t+w-8,-22,0,"E")}
+
+function plot(cv,xs,ys,es,ds,xl,yl,mark){
+  const c=cv.getContext("2d"),W=cv.width,H=cv.height,m={l:46,r:8,t:8,b:30};
+  c.clearRect(0,0,W,H);if(!xs.length)return;
+  const x0=Math.min(...xs),x1=Math.max(...xs)||1,lo=ys.map((y,i)=>y-es[i]),hi=ys.map((y,i)=>y+es[i]);
+  const y0=Math.min(...lo),y1=Math.max(...hi),px=x=>m.l+(x-x0)/((x1-x0)||1)*(W-m.l-m.r),
+        py=y=>H-m.b-(y-y0)/((y1-y0)||1)*(H-m.t-m.b);
+  c.strokeStyle="#30363d";c.strokeRect(m.l,m.t,W-m.l-m.r,H-m.t-m.b);
+  c.fillStyle="#8b949e";c.font="10px sans-serif";c.textAlign="left";
+  for(let k=0;k<=4;k++){const yy=y0+(y1-y0)*k/4;c.fillText(yy.toFixed(2),2,py(yy)+3);
+    const xx=x0+(x1-x0)*k/4;c.fillText(cv.id==="lc"?mjdDate(xx):xx.toFixed(2),px(xx)-14,H-16)}
+  c.fillText(xl,W/2-30,H-3);c.save();c.translate(10,H/2+20);c.rotate(-Math.PI/2);c.fillText(yl,0,0);c.restore();
+  xs.forEach((x,i)=>{c.strokeStyle=c.fillStyle=COL[ds[i]||0];
+    c.beginPath();c.moveTo(px(x),py(lo[i]));c.lineTo(px(x),py(hi[i]));c.stroke();
+    c.beginPath();c.arc(px(x),py(ys[i]),i===mark?5:2.5,0,7);c.fill();
+    if(i===mark){c.strokeStyle="#fff";c.stroke()}})}
+
+function plots(){
+  if(!D)return;const S=D.spectrum,F=D.frames;
+  plot($("spec"),S.map(s=>s.wl),S.map(s=>s.flux),S.map(s=>s.err),S.map(s=>s.det),"wavelength (µm)","MJy/sr",-1);
+  plot($("lc"),F.map(s=>s.mjd),F.map(s=>s.flux),F.map(s=>s.err),F.map(s=>s.det),"date","MJy/sr",idx)}
+
+function play(){$("play").textContent="❚❚ Pause";timer=setInterval(()=>show((idx+1)%imgs.length),1000/$("fps").value);state()}
+function stop(){clearInterval(timer);timer=null;$("play").textContent="▶ Play";state()}
+$("play").onclick=()=>timer?stop():(D&&play());
+$("next").onclick=()=>D&&show((idx+1)%imgs.length);
+$("prev").onclick=()=>D&&show((idx-1+imgs.length)%imgs.length);
+$("slider").oninput=e=>show(+e.target.value);
+$("fps").oninput=()=>{if(timer){stop();play()}gifLink()};
+["zoom","cross","invert"].forEach(k=>$(k).onchange=$(k).oninput=()=>show(idx));
+$("load").onclick=load;
+$("go").onclick=()=>resolve($("name").value).catch(e=>setStatus(e.message));
+$("name").onkeydown=e=>{if(e.key==="Enter")$("go").click()};
+document.querySelectorAll(".presets button").forEach(b=>b.onclick=async()=>{
+  if(busy)return;
+  try{await resolve(b.dataset.n)}catch(e){
+    if(b.dataset.c){const[a,d]=b.dataset.c.split(",");$("ra").value=a;$("dec").value=d;}
+    else{setStatus(e.message);return}}
+  load()});
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"&&e.target.type!=="range")return;
+  if(e.key==="ArrowRight")$("next").click();if(e.key==="ArrowLeft")$("prev").click();if(e.key===" "){e.preventDefault();$("play").click()}});
+
+function initAladin(){
+  if(aladin)return;
+  if(!window.A){$("aladin").textContent="Map library could not load (internet or ad-blocker?).";return}
+  const make=()=>{try{aladin=A.aladin("#aladin",{survey:$("survey").value,fov:0.2,target:"269.45 4.69",
+      showZoomControl:false,showFullscreenControl:false,showLayersControl:false});
+      if(D)moveAladin()}catch(e){$("aladin").textContent="Map error: "+e.message}};
+  (A.init&&A.init.then)?A.init.then(make):make()}
+function moveAladin(){initAladin();
+  try{if(aladin){aladin.gotoRaDec(+D.ra,+D.dec);aladin.setFoV(Math.max(D.fov*3,0.1))}}catch(e){}}
+$("survey").onchange=()=>{if(!aladin)return;const v=$("survey").value;
+  try{aladin.setBaseImageLayer(v)}catch(e){try{aladin.setImageSurvey(v)}catch(_){}}};
+initAladin();
+
+["mode","follow","det","bin","fov","scale","maxf","pmra","pmdec","epoch"].forEach(k=>$(k).onchange=()=>{if($("ra").value)load()});
+["gaia","wise"].forEach(k=>$(k).onchange=()=>{pushURL();overlays()});
+
+const qName=new URLSearchParams(location.search).get("name");
+if(readURL()){load();links()}
+else if(qName){$("name").value=qName;resolve(qName).then(()=>load()).catch(e=>setStatus(e.message))}
+function sendHeight(){try{parent.postMessage({blinkHeight:document.documentElement.scrollHeight},"*")}catch(e){}}
+window.addEventListener("load",sendHeight);window.addEventListener("resize",sendHeight);
+if(window.ResizeObserver)new ResizeObserver(sendHeight).observe(document.body);
+</script></body></html>

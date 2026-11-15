@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infrapix | NASA Space Apps Challenge – SPHEREx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050510;--card:rgba(15,23,42,.78);--border:rgba(148,163,184,.15);--primary:#38bdf8;--primary-glow:rgba(56,189,248,.35);--text:#e2e8f0;--muted:#94a3b8}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+/* splash */
+#splash{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at center,#0b1224 0%,#020617 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:opacity .85s ease,visibility .85s ease}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.stars{position:absolute;inset:0;overflow:hidden}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 3.5s infinite ease-in-out}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:.9;transform:scale(1.25)}}
+.splash-content{position:relative;z-index:2;text-align:center;padding:2rem;pointer-events:none}
+.splash-logo{font-family:'Orbitron',sans-serif;font-size:clamp(1.5rem,4vw,2.3rem);font-weight:600;letter-spacing:6px;margin-bottom:1.8rem}
+.infra{color:#f1f5f9}.pix{color:#38bdf8}
+.splash-sub{font-size:.85rem;color:#64748b;letter-spacing:4px;text-transform:uppercase;margin-bottom:2.8rem}
+.splash-title{font-family:'Orbitron',sans-serif;font-size:clamp(3rem,9vw,5.2rem);font-weight:700;color:#fff;margin-bottom:1.4rem}
+.splash-desc{max-width:480px;margin:0 auto 3rem;color:#94a3b8;font-size:1.1rem}
+.splash-hint{font-size:.9rem;color:#475569;letter-spacing:1px;animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:.9}}
+#main{display:none;opacity:0;transition:opacity 1s ease}
+#main.show{display:block;opacity:1}
+
+/* nav + hero */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1.05rem 2rem;background:rgba(5,5,16,.93);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.nav-logo{font-family:'Orbitron',sans-serif;font-weight:600;font-size:1.2rem;letter-spacing:1.5px}
+.nav-links{display:flex;gap:1.7rem;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.9rem;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--primary)}
+.hero{min-height:80vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 4rem;position:relative}
+.hero::before{content:'';position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(56,189,248,.1) 0%,transparent 70%);top:10%;left:50%;transform:translateX(-50%);pointer-events:none}
+.hero-content{max-width:860px;position:relative;z-index:2}
+.badge{display:inline-block;background:rgba(56,189,248,.12);color:var(--primary);padding:.4rem 1.2rem;border-radius:999px;font-size:.82rem;font-weight:600;letter-spacing:1.2px;margin-bottom:1.8rem;border:1px solid rgba(56,189,248,.25)}
+.hero h1{font-family:'Orbitron',sans-serif;font-size:clamp(3.2rem,9vw,5.2rem);margin-bottom:1.4rem;color:#fff}
+.hero h1 span{color:#38bdf8}
+.hero p{font-size:1.18rem;color:var(--muted);max-width:620px;margin:0 auto 2.6rem}
+.hero-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.9rem 1.8rem;border-radius:999px;font-weight:600;font-size:.96rem;text-decoration:none;transition:all .3s;cursor:pointer;border:none;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;box-shadow:0 0 26px var(--primary-glow)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 38px var(--primary-glow)}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-secondary{background:rgba(56,189,248,.15);color:var(--primary);border:1px solid rgba(56,189,248,.3);padding:.55rem 1.1rem;font-size:.86rem}
+.btn-secondary:hover{background:rgba(56,189,248,.25)}
+
+/* sections */
+section{padding:5rem 2rem;max-width:1120px;margin:0 auto}
+section.wide{max-width:1560px;padding-left:1rem;padding-right:1rem}
+.section-title{font-family:'Orbitron',sans-serif;font-size:clamp(1.6rem,4vw,2.1rem);margin-bottom:.9rem;text-align:center}
+.section-subtitle{text-align:center;color:var(--muted);max-width:660px;margin:0 auto 2rem;font-size:1.05rem}
+.tool-container{background:var(--card);border:1px solid var(--border);border-radius:1.3rem;padding:1.2rem}
+.presets{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:1rem}
+.help{color:var(--muted);font-size:.86rem;text-align:center;max-width:760px;margin:0 auto 1rem}
+#toolFrame{width:100%;height:1200px;border:1px solid var(--border);border-radius:.9rem;background:#0d1117;display:block}
+.toollink{text-align:center;margin-top:.8rem;font-size:.85rem}
+.toollink a{color:var(--primary)}
+
+/* cards */
+.cards,.examples-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.2rem}
+.card,.example-card,.step,.member,.stat{background:var(--card);border:1px solid var(--border);border-radius:1.05rem}
+.card{padding:1.7rem}
+.card-icon{width:40px;height:40px;background:rgba(56,189,248,.13);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;margin-bottom:.9rem}
+.card h3{font-size:1.1rem;margin-bottom:.5rem;color:#fff}
+.card p,.example-card p{color:var(--muted);font-size:.93rem}
+.example-card{padding:1.25rem;cursor:pointer;transition:border-color .2s}
+.example-card:hover{border-color:var(--primary)}
+.example-card h4{color:var(--primary);font-size:.95rem;margin-bottom:.35rem}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.2rem;counter-reset:step}
+.step{padding:1.6rem 1.3rem;position:relative}
+.step::before{counter-increment:step;content:counter(step);position:absolute;top:-11px;left:15px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+.step h3{margin-top:.6rem;margin-bottom:.45rem;font-size:1.02rem;color:#fff}
+.step p{color:var(--muted);font-size:.88rem}
+.team-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem}
+@media(max-width:900px){.team-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:580px){.team-grid{grid-template-columns:repeat(2,1fr)}}
+.member{text-align:center;padding:1.35rem .7rem}
+.avatar{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#a78bfa);margin:0 auto .75rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem;color:#fff;font-weight:600}
+.member h3{font-size:.88rem;color:#fff;font-weight:500}
+.impact-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1.1rem}
+.stat{text-align:center;padding:1.4rem .9rem}
+.stat-number{font-family:'Orbitron',sans-serif;font-size:1.7rem;color:var(--primary)}
+.stat-label{color:var(--muted);font-size:.86rem}
+footer{border-top:1px solid var(--border);padding:3.8rem 2rem 2.6rem;text-align:center;background:rgba(5,5,16,.9)}
+footer h2{font-family:'Orbitron',sans-serif;font-size:1.65rem;margin-bottom:.8rem}
+footer p{color:var(--muted);max-width:460px;margin:0 auto 1.8rem;font-size:.93rem}
+.footer-links{display:flex;gap:1.5rem;justify-content:center;margin-bottom:2.2rem;flex-wrap:wrap}
+.footer-links a{color:var(--muted);text-decoration:none}.footer-links a:hover{color:var(--primary)}
+.copyright{color:#64748b;font-size:.84rem}
+@media(max-width:700px){.nav-links{display:none}}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash" onclick="enterSite()">
+  <div class="stars" id="stars"></div>
+  <div class="splash-content">
+    <div class="splash-logo"><span class="infra">INFRA</span><span class="pix">PIX</span></div>
+    <div class="splash-sub">NASA International Space Apps Challenge</div>
+    <h1 class="splash-title">Infrapix</h1>
+    <p class="splash-desc">Explore the sky with real SPHEREx data and spot moving objects.</p>
+    <div class="splash-hint">Click anywhere to continue</div>
+  </div>
+</div>
+
+<div id="main">
+  <nav>
+    <div class="nav-logo"><span class="infra">INFRA</span><span class="pix">PIX</span></div>
+    <ul class="nav-links">
+      <li><a href="#herramienta">Tool</a></li>
+      <li><a href="#desafio">The Challenge</a></li>
+      <li><a href="#como-funciona">How it works</a></li>
+      <li><a href="#equipo">Team</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-content">
+      <div class="badge">Challenge · Planet X and SPHEREx</div>
+      <h1>Infra<span>pix</span></h1>
+      <p>A public tool for exploring real SPHEREx sky images and spotting objects that move over time.</p>
+      <div class="hero-buttons">
+        <a href="#herramienta" class="btn btn-primary">Use the tool</a>
+        <a href="#como-funciona" class="btn btn-outline">How it works</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERRAMIENTA: the Blink tool (static/blink.html), served by the same backend -->
+  <section id="herramienta" class="wide">
+    <h2 class="section-title">SPHEREx Explorer</h2>
+    <p class="section-subtitle">Connected to the live backend. Data is downloaded directly from NASA/IPAC IRSA.</p>
+    <div class="tool-container">
+      <div class="presets">
+        <button class="btn btn-secondary" onclick="loadInTool(&quot;Barnard's Star&quot;)">Barnard's Star</button>
+        <button class="btn btn-secondary" onclick="loadInTool('eps Ind Ba')">Epsilon Indi B</button>
+        <button class="btn btn-secondary" onclick="loadInTool('WISE J085510.83-071442.5')">WISE 0855</button>
+        <button class="btn btn-secondary" onclick="loadInTool('RW Aur')">RW Aurigae</button>
+        <button class="btn btn-secondary" onclick="loadInTool('R Dra')">R Draconis</button>
+      </div>
+      <p class="help">Type an object name (or RA/Dec) inside the tool and press <b>Find</b>. Anything that moves or changes brightness between images shows up as a red spot (brighter) next to a blue one (fainter) in the right panel. The first load of an object can take several minutes.</p>
+      <iframe id="toolFrame" src="/blink.html" title="SPHEREx Explorer" loading="lazy"></iframe>
+      <p class="toollink"><a href="/blink.html" target="_blank" rel="noopener">Open the tool full screen ↗</a></p>
+    </div>
+  </section>
+
+  <section id="desafio">
+    <h2 class="section-title">The Challenge</h2>
+    <p class="section-subtitle">SPHEREx maps the whole sky every six months in 102 bands of near-infrared light.</p>
+    <div class="cards">
+      <div class="card"><div class="card-icon">🌌</div><h3>Over a billion objects</h3><p>Stars, asteroids, comets, brown dwarfs and galaxies. Many move between observations.</p></div>
+      <div class="card"><div class="card-icon">👁️</div><h3>Comparing over time</h3><p>Objects like Pluto were discovered by comparing images taken at different times.</p></div>
+      <div class="card"><div class="card-icon">👥</div><h3>Citizen science</h3><p>A public tool is needed so anyone can explore SPHEREx.</p></div>
+    </div>
+  </section>
+
+  <section id="como-funciona">
+    <h2 class="section-title">How it works</h2>
+    <div class="steps">
+      <div class="step"><h3>Enter an object</h3><p>A name (SIMBAD) or RA / Dec. Its proper motion is looked up.</p></div>
+      <div class="step"><h3>Query IRSA</h3><p>All SPHEREx exposures covering that position are found.</p></div>
+      <div class="step"><h3>Download and align</h3><p>FITS cutouts are downloaded and aligned onto the same sky grid.</p></div>
+      <div class="step"><h3>Blink Comparator</h3><p>Images are shown in sequence, with the motion path and the difference from the average.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">Recommended objects</h2>
+    <div class="examples-grid">
+      <div class="example-card" onclick="loadInTool(&quot;Barnard's Star&quot;)"><h4>Barnard's Star</h4><p>Large proper motion (about 10″ per year). Ideal for testing motion detection.</p></div>
+      <div class="example-card" onclick="loadInTool('eps Ind Ba')"><h4>Epsilon Indi B</h4><p>A pair of nearby brown dwarfs.</p></div>
+      <div class="example-card" onclick="loadInTool('WISE J085510.83-071442.5')"><h4>WISE 0855</h4><p>A fast-moving brown dwarf.</p></div>
+      <div class="example-card" onclick="loadInTool('RW Aur')"><h4>RW Aurigae and R Draconis</h4><p>Variable stars (brightness changes).</p></div>
+    </div>
+  </section>
+
+  <section id="equipo">
+    <h2 class="section-title">Team Infrapix</h2>
+    <p class="section-subtitle">Five people united by space and data.</p>
+    <div class="team-grid">
+      <div class="member"><div class="avatar">S</div><h3>Saul Chen</h3></div>
+      <div class="member"><div class="avatar">V</div><h3>Vicente Gonzalez</h3></div>
+      <div class="member"><div class="avatar">A</div><h3>Allison Ren</h3></div>
+      <div class="member"><div class="avatar">E</div><h3>Emma Dojc</h3></div>
+      <div class="member"><div class="avatar">M</div><h3>Marcelo Villegas</h3></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">Impact</h2>
+    <div class="impact-stats">
+      <div class="stat"><div class="stat-number">01</div><div class="stat-label">Access to SPHEREx</div></div>
+      <div class="stat"><div class="stat-number">02</div><div class="stat-label">Motion detection</div></div>
+      <div class="stat"><div class="stat-number">03</div><div class="stat-label">Citizen science</div></div>
+      <div class="stat"><div class="stat-number">04</div><div class="stat-label">Real data</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <h2>Infrapix</h2>
+    <p>NASA International Space Apps Challenge · Planet X and SPHEREx</p>
+    <div class="footer-links"><a href="#">GitHub</a><a href="#">Contact</a></div>
+    <div class="copyright">© 2025 · Team Infrapix</div>
+  </footer>
+</div>
+
+<script>
+// stars on the splash screen
+const starsContainer=document.getElementById('stars');
+for(let i=0;i<140;i++){const s=document.createElement('div'),size=Math.random()*2.2+.4;
+  s.className='star';s.style.width=s.style.height=size+'px';
+  s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';
+  s.style.animationDelay=Math.random()*4+'s';starsContainer.appendChild(s)}
+
+function enterSite(){
+  document.getElementById('splash').classList.add('hide');
+  setTimeout(()=>{document.getElementById('main').classList.add('show');document.body.style.overflow='auto'},350)}
+
+// Put an object into the Blink tool (the tool page looks it up and loads it).
+function loadInTool(name){
+  document.getElementById('toolFrame').src='/blink.html?name='+encodeURIComponent(name);
+  document.getElementById('herramienta').scrollIntoView({behavior:'smooth'})}
+
+// The tool page reports its own height so the frame fits it exactly (no double scrollbars).
+window.addEventListener('message',e=>{
+  if(e.data&&e.data.blinkHeight)document.getElementById('toolFrame').style.height=(e.data.blinkHeight+4)+'px'});
+</script>
+</body>
+</html>

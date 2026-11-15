@@ -1,0 +1,9 @@
+.venv/
+cache/
+cache.zip
+__pycache__/
+.DS_Store
+*.part
+patch*.py
+fix_ui.py
+to_english.py
