@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: infrapix
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SPHEREX_WORKERS
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12.7"
