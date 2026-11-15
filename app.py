@@ -106,8 +106,14 @@ SIMBAD_BASES = ("https://simbad.cds.unistra.fr/simbad/sim-tap/sync",
                 "https://simbad.u-strasbg.fr/simbad/sim-tap/sync")
 
 
+_simbad_down_until = 0.0
+
+
 def _tap_rows(query):
     """Run an ADQL query on SIMBAD. Tries several routes; logs the real error of each."""
+    global _simbad_down_until
+    if time.time() < _simbad_down_until:         # failed recently: don't make every lookup wait again
+        raise RuntimeError("SIMBAD unreachable (skipped for 5 minutes after a failure)")
     form = dict(request="doQuery", lang="adql", format="json", query=query)
     errors = []
     for base in SIMBAD_BASES:
@@ -125,6 +131,7 @@ def _tap_rows(query):
         return [[None if np.ma.is_masked(x) else x for x in row] for row in t]
     except Exception as e:  # noqa: BLE001
         errors.append(f"astroquery: {str(e)[:160]}")
+    _simbad_down_until = time.time() + 300
     raise RuntimeError("SIMBAD unreachable | " + " | ".join(errors))
 
 
@@ -161,8 +168,22 @@ def _simbad_by_position(ra, dec, radius_arcsec=5.0):
     return rows[0] if rows else None
 
 
+_resolve_cache = {}
+
+
 @app.get("/api/resolve")
 def resolve(name: str, epoch: float = 2026.0):
+    """Cached for 10 minutes: the page asks again whenever a setting changes."""
+    key = (" ".join(name.lower().split()), round(epoch, 2))
+    hit = _resolve_cache.get(key)
+    if hit and time.time() - hit[0] < 600:
+        return hit[1]
+    out = _resolve_uncached(name, epoch)
+    _resolve_cache[key] = (time.time(), out)
+    return out
+
+
+def _resolve_uncached(name: str, epoch: float = 2026.0):
     """Name -> position moved to `epoch`, plus proper motion (mas/yr).
     Works for any SIMBAD object. pm_found=False means no proper motion was available."""
     got = KNOWN_TARGETS.get(" ".join(name.lower().split()))
@@ -614,16 +635,34 @@ def gif(ra: float, dec: float,
 
 
 GAIA_TAP = "https://gea.esac.esa.int/tap-server/tap"
+GAIA_TAPS = (GAIA_TAP, "https://gaia.ari.uni-heidelberg.de/tap")   # ESA archive, then the Heidelberg mirror (VERIFY)
 SKYBOT_URL = "https://ssp.imcce.fr/webservices/skybot/api/conesearch.php"
 
 
+class _TimeoutSession(requests.Session):
+    """requests session with a default timeout, so a blocked server fails in seconds, not minutes."""
+    def request(self, *a, **k):
+        k.setdefault("timeout", 20)
+        return super().request(*a, **k)
+
+
+_down = {}          # service url -> time until which we skip it after a failure
+
+
 def _cone_table(url, table, cols, ra, dec, r_deg, where="", order=None, top=600):
-    """ADQL cone search on a TAP service (IRSA, ESA Gaia archive...). Returns an astropy Table."""
+    """ADQL cone search on a TAP service (IRSA, ESA Gaia archive...). Returns an astropy Table.
+    After a failure the service is skipped for 2 minutes so repeated lookups don't all wait."""
     import pyvo
+    if time.time() < _down.get(url, 0):
+        raise RuntimeError(f"{url} skipped (failed recently)")
     q = (f"SELECT TOP {top} {', '.join(cols)} FROM {table} "
          f"WHERE 1 = CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {ra}, {dec}, {r_deg})) {where}"
          + (f" ORDER BY {order}" if order else ""))
-    return pyvo.dal.TAPService(url).search(q).to_table()
+    try:
+        return pyvo.dal.TAPService(url, session=_TimeoutSession()).search(q).to_table()
+    except Exception:
+        _down[url] = time.time() + 120
+        raise
 
 
 def _c(t, name, i):
@@ -643,10 +682,44 @@ def _name(t, name, i):
     return str(t[key][i]) if key else ""
 
 
+GATOR_URL = "https://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query"
+
+
+def _gator_table(catalog, cols, ra, dec, r_deg, top=600):
+    """IRSA's older Gator service (separate from TAP, so it can work while TAP returns 502). VERIFY params."""
+    r = requests.get(GATOR_URL, timeout=40, params=dict(
+        catalog=catalog, spatial="cone", objstr=f"{ra} {dec}", radius=round(r_deg * 3600, 2),
+        radunits="arcsec", outfmt=3, selcols=",".join(cols)))
+    r.raise_for_status()
+    t = parse_single_table(io.BytesIO(r.content)).to_table()
+    return t[:top]
+
+
+def _irsa_cat(table, cols, ra, dec, r_deg, order):
+    """TAP first; Gator if TAP fails."""
+    try:
+        return _cone_table(TAP_URL, table, cols, ra, dec, r_deg, order=order)
+    except Exception as e:  # noqa: BLE001
+        log.warning("IRSA TAP failed for %s (%s); trying Gator", table, str(e)[:120])
+        t = _gator_table(table, cols, ra, dec, r_deg)
+        key = next((c for c in t.colnames if c.lower() == order.lower()), None)
+        if key:
+            t = t[np.argsort(np.ma.filled(t[key].astype(float), 99.0))]
+        return t
+
+
 def _gaia_rows(ra, dec, r_deg, gmax=19.0):
-    t = _cone_table(GAIA_TAP, "gaiadr3.gaia_source",
-                    ["source_id", "ra", "dec", "pmra", "pmdec", "phot_g_mean_mag"], ra, dec, r_deg,
-                    f"AND phot_g_mean_mag < {gmax}", order="phot_g_mean_mag")
+    t, err = None, None
+    for url in GAIA_TAPS:
+        try:
+            t = _cone_table(url, "gaiadr3.gaia_source",
+                            ["source_id", "ra", "dec", "pmra", "pmdec", "phot_g_mean_mag"], ra, dec, r_deg,
+                            f"AND phot_g_mean_mag < {gmax}", order="phot_g_mean_mag")
+            break
+        except Exception as e:  # noqa: BLE001
+            err = e
+    if t is None:
+        raise err
     return [dict(id=_name(t, "source_id", i),
                  ra=_c(t, "ra", i), dec=_c(t, "dec", i),
                  pmra=_c(t, "pmra", i) or 0.0, pmdec=_c(t, "pmdec", i) or 0.0,
@@ -654,9 +727,8 @@ def _gaia_rows(ra, dec, r_deg, gmax=19.0):
 
 
 def _allwise_rows(ra, dec, r_deg):
-    t = _cone_table(TAP_URL, "allwise_p3as_psd",
-                    ["designation", "ra", "dec", "pmra", "pmdec", "w1mpro", "w2mpro"], ra, dec, r_deg,
-                    order="w1mpro")
+    t = _irsa_cat("allwise_p3as_psd", ["designation", "ra", "dec", "pmra", "pmdec", "w1mpro", "w2mpro"],
+                  ra, dec, r_deg, "w1mpro")
     return [dict(id=_name(t, "designation", i), ra=_c(t, "ra", i), dec=_c(t, "dec", i),
                  pmra=_c(t, "pmra", i) or 0.0, pmdec=_c(t, "pmdec", i) or 0.0,
                  w1=_c(t, "w1mpro", i), w2=_c(t, "w2mpro", i)) for i in range(len(t))]
@@ -664,9 +736,8 @@ def _allwise_rows(ra, dec, r_deg):
 
 def _catwise_rows(ra, dec, r_deg):
     # CatWISE2020: epoch 2015.405; proper motions are in ARCSEC/yr (VERIFY: whether pmra includes cos dec)
-    t = _cone_table(TAP_URL, "catwise_2020",
-                    ["source_name", "ra", "dec", "pmra", "pmdec", "w1mpro", "w2mpro"], ra, dec, r_deg,
-                    order="w1mpro")
+    t = _irsa_cat("catwise_2020", ["source_name", "ra", "dec", "pmra", "pmdec", "w1mpro", "w2mpro"],
+                  ra, dec, r_deg, "w1mpro")
     return [dict(id=_name(t, "source_name", i), ra=_c(t, "ra", i), dec=_c(t, "dec", i),
                  pmra=(_c(t, "pmra", i) or 0.0) * 1000.0, pmdec=(_c(t, "pmdec", i) or 0.0) * 1000.0,
                  w1=_c(t, "w1mpro", i), w2=_c(t, "w2mpro", i)) for i in range(len(t))]
@@ -809,7 +880,11 @@ def diag():
     """Open http://localhost:8000/api/diag to see which outside services your network can reach."""
     tests = {
         "IRSA TAP (SPHEREx, AllWISE, CatWISE)": lambda: requests.get(TAP_URL + "/availability", timeout=20),
+        "IRSA Gator (catalogues, older service)": lambda: requests.get(GATOR_URL, timeout=20, params=dict(
+            catalog="allwise_p3as_psd", spatial="cone", objstr="202.47 47.19", radius=10, radunits="arcsec",
+            outfmt=3, selcols="designation,ra,dec")),
         "ESA Gaia archive": lambda: requests.get(GAIA_TAP + "/availability", timeout=20),
+        "Gaia mirror (Heidelberg)": lambda: requests.get("https://gaia.ari.uni-heidelberg.de/tap/availability", timeout=20),
         "SkyBoT (asteroids)": lambda: requests.get(SKYBOT_URL, timeout=30, params={
             "-ep": "now", "-ra": 148.67, "-dec": 16.38, "-rs": 600, "-mime": "json", "-output": "basic",
             "-from": "infrapix"}),
@@ -838,10 +913,59 @@ def health():
     return {"ok": True}
 
 
-# Optional: exported SPHEREx targets for the 3D map (nebula/targets.json, nebula/<slug>/...)
+# ---- 3D map: search an object -> SPHEREx pictures exported to nebula/<slug>/ ----
 _HERE = os.path.dirname(os.path.abspath(__file__))
-if os.path.isdir(os.path.join(_HERE, "nebula")):
-    app.mount("/nebula", StaticFiles(directory=os.path.join(_HERE, "nebula")), name="nebula")
+os.makedirs(os.path.join(_HERE, "nebula"), exist_ok=True)
+_jobs, _jobs_lock = {}, threading.Lock()
+_job_pool = ThreadPoolExecutor(1)            # one export at a time (IRSA is gentle-only)
+STEP_LABEL = {"resolve": "Looking up the object", "search": "Finding SPHEREx exposures",
+              "download": "Downloading exposures", "export": "Making the pictures"}
+
+
+def _run_job(key, name):
+    j = _jobs[key]
+    j.update(state="running", t0=time.time())
+
+    def say(step, text):
+        j["step"] = step
+        j["log"].append(text)
+    try:
+        import exporter
+        j["slug"] = exporter.export_target(name, say)
+        j["state"] = "done"
+    except HTTPException as e:
+        j.update(state="error", error=str(e.detail))
+    except Exception as e:  # noqa: BLE001
+        log.warning("export %s failed: %s", name, e)
+        j.update(state="error", error=str(e)[:300])
+
+
+def _job_view(j):
+    t0 = j.get("t0") or time.time()
+    return dict(state=j["state"], step=j.get("step"), slug=j.get("slug"), error=j.get("error"),
+                log=j["log"][-6:], elapsed=int(time.time() - t0), n_images=None)
+
+
+@app.get("/api/fetch")
+def api_fetch(name: str):
+    key = " ".join(name.lower().split())
+    with _jobs_lock:
+        j = _jobs.get(key)
+        if j is None or j["state"] == "error":
+            j = _jobs[key] = dict(state="queued", log=[], step="resolve")
+            _job_pool.submit(_run_job, key, name.strip())
+    return _job_view(j)
+
+
+@app.get("/api/status")
+def api_status(name: str):
+    j = _jobs.get(" ".join(name.lower().split()))
+    if not j:
+        return dict(state="error", error="No such job.", log=[], elapsed=0)
+    return _job_view(j)
+
+
+app.mount("/nebula", StaticFiles(directory=os.path.join(_HERE, "nebula")), name="nebula")
 
 # serve the web page (static/index.html) at http://localhost:8000/
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),

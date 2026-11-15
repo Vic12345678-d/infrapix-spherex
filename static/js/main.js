@@ -1314,7 +1314,7 @@ function suggest(nq) {
     .map((x) => x.c);
 }
 
-const fetchHint = () => 'Every SPHEREx exposure of this spot, lined up as a blink movie';
+const fetchHint = () => 'Fetch the SPHEREx pictures and add it to the map (about a minute)';
 
 function renderSearch() {
   const q = search.input.value.trim();
@@ -1324,7 +1324,7 @@ function renderSearch() {
 
   if (nq) {
     for (const c of suggest(nq)) { items.push({ ...c, section: 'suggest' }); shown.add(norm(c.name)); }
-    if (!shown.has(nq)) items.push({ kind: 'fetch', q, name: `Blink “${q}” in SPHEREx`, section: 'fetch', custom: true });
+    if (!shown.has(nq)) items.push({ kind: 'fetch', q, name: `Add “${q}” from SPHEREx`, section: 'fetch', custom: true });
   }
   // Recent searches go at the bottom: all of them on an empty box, the matching ones while typing.
   const recents = recent.filter((r) => !shown.has(norm(r)) && (!nq || matchScore(r, nq) > 0)).slice(0, nq ? 3 : 6);
@@ -1332,7 +1332,7 @@ function renderSearch() {
     const b = byName.get(r);
     items.push(b
       ? { kind: 'body', b, name: r, sub: b.data.type || KIND_SUB[b.kind], section: 'recent', recent: r }
-      : { kind: 'fetch', q: r, name: r, sub: 'Not in the scene · open in blink view', section: 'recent', recent: r });
+      : { kind: 'fetch', q: r, name: r, sub: 'Not on the map yet · fetch from SPHEREx', section: 'recent', recent: r });
   }
   search.items = items;
 
@@ -1484,7 +1484,7 @@ function choose(i) {
     search.input.blur();
   } else {
     addRecent(it.q);
-    openBlink({ name: it.q });
+    if (!search.job) startFetch(it.q);
     search.input.value = '';
     closeSearch();
     search.input.blur();
@@ -1699,3 +1699,13 @@ window.addEventListener('keydown', (e) => {
   if (e.key === '?' && !typing()) { e.preventDefault(); runTour(); }
 });
 if (!tourSeen() && !new URLSearchParams(location.search).has('blink')) setTimeout(runTour, 900); // let the loading screen fade first
+
+// The website embeds this page and can ask it to search for an object.
+window.addEventListener('message', (e) => {
+  const q = e.data && e.data.infrapixSearch;
+  if (!q || typeof q !== 'string') return;
+  const b = byName.get(q);
+  if (b) { focusOn(b.data.name); return; }
+  if (!search.job) startFetch(q);
+});
+if (window.self !== window.top) document.querySelectorAll('.brand-back').forEach((a) => { a.hidden = true; });

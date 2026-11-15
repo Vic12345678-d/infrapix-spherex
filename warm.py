@@ -1,15 +1,11 @@
-"""Preload the test targets so a demo is instant. Run while the server is running:
-   python3 warm.py
-"""
-import requests
-B = "http://127.0.0.1:8000"
+"""Pre-fetch the five test targets so they are instant on demo day.
+Run the server first (SPHEREX_WORKERS=1 uvicorn app:app), then: python warm.py"""
+import sys, time, requests
+BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
 for name in ["Barnard's Star", "eps Ind Ba", "WISE J085510.83-071442.5", "RW Aur", "R Dra"]:
-    try:
-        c = requests.get(B + "/api/resolve", params={"name": name}, timeout=60).json()
-        print(f"{name}: loading frames (this can take a few minutes)...", flush=True)
-        r = requests.get(B + "/api/frames", params=dict(
-            ra=c["ra"], dec=c["dec"], fov=0.05, detector=3, max_frames=36,
-            pmra=c["pmra"], pmdec=c["pmdec"], epoch=c["epoch"], follow=1), timeout=3600)
-        print("   ", "ok" if r.ok else f"failed: {r.text[:120]}", flush=True)
-    except Exception as e:
-        print(f"{name}: skipped ({e})", flush=True)
+    print(name, end=" ... ", flush=True)
+    s = requests.get(f"{BASE}/api/fetch", params=dict(name=name), timeout=60).json()
+    while s["state"] in ("queued", "running"):
+        time.sleep(3)
+        s = requests.get(f"{BASE}/api/status", params=dict(name=name), timeout=60).json()
+    print(s["state"], s.get("error") or "")

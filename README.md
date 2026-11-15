@@ -28,3 +28,11 @@ Open http://localhost:8000 for the website, and http://localhost:8000/explorer.h
 - `static/explorer.html`, `css/`, `js/` – the 3D Solar System Explorer; `js/blink.js` + `css/blink.css` are its Blink view
 - `static/blink.html` – standalone full-screen blink page
 - `nebula/` (optional, next to `app.py`) – targets exported by `spherex_scene.py`; shown on the map automatically
+
+
+## Page layout (v2)
+One page: splash -> the 3D explorer (embedded) -> challenge / how it works / team.
+Search an object in the explorer: the backend (`/api/fetch`, `/api/status`, `exporter.py`) downloads
+its SPHEREx exposures and writes `nebula/<slug>/` (colour composite + six detector images).
+It is added to the map; its card shows the pictures and a **Blink** button opens the blink view.
+Run `python warm.py` once to pre-fetch the five test targets. `nebula/` is created automatically.
