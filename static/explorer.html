@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Solar System Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/blink.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <div id="loading">
+    <div class="loader-orbit"><span></span></div>
+    <p>Building the solar system…</p>
+  </div>
+
+  <header class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <h1>Infrapix</h1>
+    <a class="brand-back" href="index.html">← Infrapix site</a>
+  </header>
+
+  <!-- Search: planets and SPHEREx targets, or fetch a new one live -->
+  <div class="search-wrap">
+    <div class="search lg" role="search" data-refract="30">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></svg>
+      <span class="search-field">
+        <span id="searchGhost" class="search-ghost" aria-hidden="true"></span>
+        <input id="searchInput" type="search" placeholder="Search planets, nebulae, galaxies…" autocomplete="off" spellcheck="false"
+          role="combobox" aria-expanded="false" aria-controls="searchList" aria-autocomplete="both" aria-label="Search" />
+      </span>
+      <kbd aria-hidden="true">/</kbd>
+    </div>
+    <div id="searchList" class="search-list lg lg-regular" role="listbox" aria-label="Results" hidden></div>
+    <div id="fetchStatus" class="fetch-status lg lg-regular" hidden aria-live="polite">
+      <span class="fs-spinner" aria-hidden="true"></span>
+      <div class="fs-text">
+        <strong id="fsTitle"></strong>
+        <span id="fsStep"></span>
+        <span id="fsLog" class="fs-log"></span>
+      </div>
+      <button id="fsClose" class="icon-btn fs-close" aria-label="Dismiss">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Bodies, ordered outward from the Sun -->
+  <nav class="rail lg" aria-label="Go to" data-refract="34">
+    <div class="rail-list" id="planetRail">
+      <span class="rail-lens" id="railLens" aria-hidden="true"></span>
+    </div>
+  </nav>
+
+  <!-- Selected body -->
+  <aside id="info" class="lg lg-regular" hidden aria-live="polite" data-refract="40">
+    <button id="infoClose" class="icon-btn" aria-label="Close details">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+    </button>
+    <div class="info-head">
+      <span class="planet-orb" id="infoSwatch"></span>
+      <div>
+        <h2 id="infoName"></h2>
+        <p id="infoType"></p>
+      </div>
+    </div>
+    <dl id="infoKey" class="facts key-facts"></dl>
+    <button id="blinkBtn" class="pill blink-cta" type="button" hidden>Blink these SPHEREx exposures</button>
+    <section id="infoImages" class="ir-images" hidden aria-labelledby="irTitle">
+      <h3 id="irTitle">Infrared images</h3>
+      <figure class="ir-main">
+        <img id="irMain" alt="" />
+        <figcaption><strong id="irName"></strong><span id="irNote"></span></figcaption>
+      </figure>
+      <div class="ir-strip" id="irStrip" role="group" aria-label="Choose an image"></div>
+    </section>
+    <section id="infoDots" class="dot-key" hidden aria-labelledby="dotKeyTitle">
+      <h3 id="dotKeyTitle">What the coloured dots are</h3>
+      <ul>
+        <li><span class="key-dot" style="--d:#5b9bff"></span><div><strong>Blue <span class="key-n" data-kind="hot"></span></strong>Hot stars. They shine brightest at the shortest wavelengths (0.75–1.6 µm), with little dust in the way.</div></li>
+        <li><span class="key-dot" style="--d:#4fdc7a"></span><div><strong>Green <span class="key-n" data-kind="mid"></span></strong>Brightest at 1.6–3.8 µm: usually cool giant stars, or stars seen through some dust that dims their blue light.</div></li>
+        <li><span class="key-dot" style="--d:#ff5a4f"></span><div><strong>Red <span class="key-n" data-kind="dusty"></span></strong>Brightest at 3.8–5 µm: cool, dusty sources, such as young stars still wrapped in their birth cloud, or heavily reddened background stars.</div></li>
+      </ul>
+      <p class="hint">White dots are bright at every wavelength, usually very bright stars.</p>
+    </section>
+    <details class="more" id="infoMore">
+      <summary>
+        <span class="more-open">Show more</span><span class="more-close">Show less</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      </summary>
+      <div class="more-body">
+        <p id="infoDesc"></p>
+        <dl id="infoFacts" class="facts"></dl>
+      </div>
+    </details>
+  </aside>
+
+  <!-- Display settings, opens above the time bar -->
+  <section id="displayPanel" class="panel lg lg-regular" role="dialog" aria-label="Display" data-refract="40">
+    <div class="group">
+      <h2>View</h2>
+      <div class="segmented" id="modeSeg" role="radiogroup" aria-label="View mode">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button data-mode="3d" class="active" role="radio" aria-checked="true">3D</button>
+        <button data-mode="2d" role="radio" aria-checked="false">2D map</button>
+      </div>
+      <div class="field">
+        <div class="field-head"><label for="fov" id="fovLabel">Field of view</label><output id="fovVal" for="fov">50°</output></div>
+        <input type="range" id="fov" min="10" max="120" value="50" step="1" />
+        <div class="ticks"><span>Telephoto</span><span>Wide</span></div>
+      </div>
+      <div class="field" id="presets">
+        <div class="field-head"><span>Camera angle</span></div>
+        <div class="pill-row">
+          <button data-preset="top" class="pill">Top</button>
+          <button data-preset="angled" class="pill">Angled</button>
+          <button data-preset="side" class="pill">Edge-on</button>
+        </div>
+      </div>
+      <p class="hint" id="hint">Drag to rotate, scroll to zoom, right-drag to pan. W A S D to fly, Q / E down and up, Shift for speed.</p>
+    </div>
+
+    <div class="group">
+      <h2>Show</h2>
+      <div class="switches">
+        <label class="switch"><input type="checkbox" id="showOrbits" checked /><span class="track"></span><span>Orbit paths</span></label>
+        <label class="switch"><input type="checkbox" id="showTrails" /><span class="track"></span><span>Motion trails</span></label>
+        <label class="switch"><input type="checkbox" id="showLabels" checked /><span class="track"></span><span>Labels</span></label>
+        <label class="switch"><input type="checkbox" id="showSweep" /><span class="track"></span><span>Kepler's 2nd law</span></label>
+      </div>
+      <p class="hint" id="sweepNote" hidden>Pick a planet. Each sector covers 1/12 of its orbit's time. With true distances, all sectors have equal area.</p>
+    </div>
+
+    <div class="group">
+      <h2>Scale</h2>
+      <div class="segmented" id="scaleSeg" role="radiogroup" aria-label="Distance scale">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button data-scale="compressed" class="active" role="radio" aria-checked="true">Compressed</button>
+        <button data-scale="true" role="radio" aria-checked="false">True distances</button>
+      </div>
+      <div class="field">
+        <div class="field-head"><label for="size">Planet size</label><output id="sizeVal" for="size">1.0×</output></div>
+        <input type="range" id="size" min="0.2" max="3" value="1" step="0.1" />
+        <p class="hint">Planets are drawn larger than life so you can see them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline: drag to any date from 1900 to 2100 -->
+  <div class="timeline lg" data-refract="26">
+    <div class="tl-rail">
+      <output class="tl-date" id="tlDate" for="timeline" aria-hidden="true"></output>
+      <span class="tl-today" id="tlToday" aria-hidden="true"></span>
+      <input type="range" id="timeline" step="any" aria-label="Date" />
+      <div class="tl-years" id="tlYears" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- Time bar -->
+  <div class="transport lg" role="toolbar" aria-label="Time" data-refract="44">
+    <button id="reverse" class="t-btn" aria-pressed="false" aria-label="Run time backwards" title="Run time backwards">
+      <svg viewBox="0 0 24 24"><path d="M11 18 4 12l7-6v12zM20 18l-7-6 7-6v12z" /></svg>
+    </button>
+
+    <button class="play lg" id="play" aria-label="Pause" data-refract="22">
+      <svg class="i-pause" viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1" /><rect x="13.5" y="5" width="3.5" height="14" rx="1" /></svg>
+      <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>
+    </button>
+
+    <div class="t-date" aria-live="off">
+      <time id="date">—</time>
+      <span class="t-status"><span class="date-dot" aria-hidden="true"></span><span id="status">Running</span></span>
+    </div>
+
+    <div class="t-speed">
+      <div class="field-head"><label for="speed">Speed</label><output id="speedVal" for="speed"></output></div>
+      <input type="range" id="speed" min="0" max="7" value="3" step="1" />
+    </div>
+
+    <button id="today" class="t-btn t-text" title="Jump to today's date">Today</button>
+
+    <button id="resetView" class="t-btn" aria-label="Reset to the starting view" title="Reset to the starting view">
+      <svg viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4h4" /><circle cx="12" cy="12" r="2" /></svg>
+    </button>
+
+    <span class="t-sep" aria-hidden="true"></span>
+
+    <button id="blinkOpen" class="t-btn" aria-label="Blink view" title="Blink view: compare every SPHEREx exposure of any spot">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="12" height="12" rx="2" /><path d="M8.5 19.5h11a1 1 0 0 0 1-1v-11" /></svg>
+    </button>
+
+    <button id="displayBtn" class="t-btn" aria-expanded="false" aria-controls="displayPanel" aria-label="Display settings" title="Display settings">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2.2" /><circle cx="10" cy="17" r="2.2" /></svg>
+    </button>
+
+    <button id="tourBtn" class="t-btn" aria-label="Take the tour" title="Take the tour (?)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.7" /><circle cx="12" cy="17.2" r="0.6" fill="currentColor" /></svg>
+    </button>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

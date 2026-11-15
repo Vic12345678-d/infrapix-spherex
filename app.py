@@ -68,6 +68,8 @@ CACHE_DIR = os.environ.get("SPHEREX_CACHE", "cache")
 # Server-side cutout query. VERIFY against the IRSA SPHEREx tutorial notebooks.
 CUTOUT_TEMPLATE = "{url}?center={ra},{dec}&size={fov}"
 # Flag bits treated as bad. VERIFY against the SPHEREx Explanatory Supplement.
+# Bits 0-2 are NOT masked: on bright stars (e.g. Barnard's Star) they mark saturated/transient
+# pixels, and masking them erased the very object we want to see.
 BAD_BITS = (6, 7, 9, 10)
 BAD_MASK = sum(1 << b for b in BAD_BITS)
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -432,6 +434,9 @@ def bin_frames(frames, days):
 
 
 # ============================================================== 6. PICTURES
+MASKED_RGB = (20, 90, 110)      # teal = masked / no data (so it is not mistaken for dark sky)
+
+
 def zlimits(a):
     """DS9-style ZScale limits (same stretch as the team's spherex_fetch.py)."""
     from astropy.visualization import ZScaleInterval
@@ -444,30 +449,43 @@ def zlimits(a):
 
 
 def gray_u8(a, lo, hi, diff):
+    """Greyscale (RGB) picture; masked pixels are teal."""
     if diff:
         x = np.clip(0.5 + a / (hi - lo + 1e-12), 0, 1)
     else:
         x = np.clip((a - lo) / (hi - lo + 1e-12), 0, 1)
         x = np.arcsinh(10 * x) / np.arcsinh(10)
-    return (np.nan_to_num(np.flipud(x), nan=0.0) * 255).astype(np.uint8)
+    x = np.flipud(x)
+    g = (np.nan_to_num(x, nan=0.0) * 255).astype(np.uint8)
+    rgb = np.stack([g, g, g], axis=-1)
+    rgb[~np.isfinite(x)] = MASKED_RGB
+    return rgb
 
 
 def diverge_rgb(a, s):
-    """Blue (fainter) - white - red (brighter), saturating at +-5 sigma."""
-    x = np.nan_to_num(np.clip(a / (5 * s), -1, 1), nan=0.0)
+    """Blue (fainter) - white - red (brighter), saturating at +-5 sigma. Masked = teal."""
+    x = np.clip(a / (5 * s), -1, 1)
+    bad = ~np.isfinite(x)
+    x = np.nan_to_num(x, nan=0.0)
     ch = [np.interp(x, [-1, 0, 1], c) for c in ([33, 247, 178], [102, 247, 24], [172, 247, 43])]
-    return np.flipud(np.stack(ch, axis=-1)).astype(np.uint8)
+    rgb = np.stack(ch, axis=-1).astype(np.uint8)
+    rgb[bad] = MASKED_RGB
+    return np.flipud(rgb)
 
 
 def inferno_rgb(a):
-    """Black-purple-orange-yellow colour map (same look as matplotlib 'inferno')."""
+    """Black-purple-orange-yellow colour map (like matplotlib 'inferno'). Masked = teal."""
     lo, hi = zlimits(a)
     x = np.clip((a - lo) / (hi - lo + 1e-12), 0, 1)
     x = np.arcsinh(10 * x) / np.arcsinh(10)
-    x = np.nan_to_num(np.flipud(x), nan=0.0)
+    x = np.flipud(x)
+    bad = ~np.isfinite(x)
+    x = np.nan_to_num(x, nan=0.0)
     cols = [(0, 0, 4), (87, 16, 110), (188, 55, 84), (249, 142, 9), (252, 255, 164)]
-    return np.stack([np.interp(x, [0, .25, .5, .75, 1], [c[i] for c in cols])
-                     for i in range(3)], -1).astype(np.uint8)
+    rgb = np.stack([np.interp(x, [0, .25, .5, .75, 1], [c[i] for c in cols])
+                    for i in range(3)], -1).astype(np.uint8)
+    rgb[bad] = MASKED_RGB
+    return rgb
 
 
 def uri(arr):
@@ -632,6 +650,16 @@ def wise(ra: float, dec: float, fov: float = 0.05):
                  pmra=_val(t, "pmRA", i) or 0.0, pmdec=_val(t, "pmDE", i) or 0.0,
                  w1=_val(t, "W1mag", i), w2=_val(t, "W2mag", i)) for i in range(len(t))]
 
+
+@app.get("/api/health")
+def health():
+    return {"ok": True}
+
+
+# Optional: exported SPHEREx targets for the 3D map (nebula/targets.json, nebula/<slug>/...)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if os.path.isdir(os.path.join(_HERE, "nebula")):
+    app.mount("/nebula", StaticFiles(directory=os.path.join(_HERE, "nebula")), name="nebula")
 
 # serve the web page (static/index.html) at http://localhost:8000/
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)),

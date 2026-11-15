@@ -7,3 +7,4 @@ __pycache__/
 patch*.py
 fix_ui.py
 to_english.py
+*.code-workspace

@@ -83,7 +83,8 @@ h3{margin:0 0 6px;font-size:13px}.plot{width:100%;height:190px;background:#0d111
       <div id="state">SPACE = pause/play &nbsp;&nbsp; LEFT / RIGHT = step</div>
     </div>
     <div id="info"></div>
-    <div class="hint" style="max-width:640px;margin:0 auto 6px">How to read it: the cyan circle marks your object on each date. With &ldquo;Follow the object&rdquo; on, the object stays in the circle and the background stars slide past; with it off, the stars stay put and the circle moves. The cyan line is the object's path across all dates. The right panel shows only what changed: red = brighter than the average frame, blue = fainter, so a mover shows as a red spot next to a blue one.</div>
+    <div id="motion" class="hint" style="max-width:640px;margin:0 auto 8px;color:#e6edf3;font-size:12px"></div>
+    <div class="hint" style="max-width:640px;margin:0 auto 6px">How to read it: the cyan circle marks your object on each date. With &ldquo;Follow the object&rdquo; on, the object stays in the circle and the background stars slide past; with it off, the stars stay put and the circle moves. The cyan line is the object's path across all dates (with the start and end date), and its length is given under the pictures. Teal pixels are masked or have no data. The right panel shows only what changed: red = brighter than the average frame, blue = fainter, so a mover shows as a red spot next to a blue one.</div>
     <div class="row"><button id="prev">&#9664;</button><button id="play">&#9654; Play</button><button id="next">&#9654;&#9654;</button></div>
     <input id="slider" type="range" min="0" max="0" value="0" style="margin-top:8px">
     <div class="row"><div><label>Speed (fps)</label><input id="fps" type="range" min="1" max="20" value="3"></div>
@@ -206,12 +207,15 @@ function panel(cv,img,f,isLeft){
     const [oE,oN]=objOffset(D,f),tx=cx-oE/D.scale*z,ty=cy-oN/D.scale*z;
     c.strokeStyle="#00c8d7";c.lineWidth=1.6;c.setLineDash([4,3]);c.beginPath();
     c.arc(tx,ty,Math.max(10,w*0.07),0,7);c.stroke();c.setLineDash([])}
-  if($("cross").checked&&!D.follow&&(D.pmra||D.pmdec)){
+  if($("cross").checked&&!D.follow&&(D.pmra||D.pmdec)){          // path of the object over all dates
     c.strokeStyle="rgba(0,200,215,.9)";c.lineWidth=1;c.beginPath();
     D.frames.forEach((q,k)=>{const [e,n]=objOffset(D,q),x=cx-e/D.scale*z,y=cy-n/D.scale*z;
       k?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
     D.frames.forEach(q=>{const [e,n]=objOffset(D,q);c.fillStyle="rgba(0,200,215,.9)";
-      c.fillRect(cx-e/D.scale*z-1.5,cy-n/D.scale*z-1.5,3,3)})}
+      c.fillRect(cx-e/D.scale*z-1.5,cy-n/D.scale*z-1.5,3,3)});
+    const f0=D.frames[0],f1=D.frames[D.frames.length-1];
+    [[f0,"start"],[f1,"end"]].forEach(([q,t])=>{const [e,n]=objOffset(D,q);c.fillStyle="#007c89";
+      c.font="10px sans-serif";c.textAlign="left";c.fillText(t+" "+mjdDate(q.mjd),cx-e/D.scale*z+6,cy-n/D.scale*z-6)})}
   gaia.forEach(g=>{if(g.ra==null)return;const dt=f.year-2016.0;
     const dE=((g.ra-f.cra)*cd*3600)+g.pmra*dt/1000,dN=((g.dec-f.cdec)*3600)+g.pmdec*dt/1000;
     const x=cx-dE/D.scale*z,y=cy-dN/D.scale*z;
@@ -237,13 +241,19 @@ function panel(cv,img,f,isLeft){
     c.save();c.translate(bx+46,M.t+w/2);c.rotate(Math.PI/2);c.textAlign="center";
     c.fillText("change from the average frame",0,0);c.restore()}}
 
+function motionText(){
+  const pm=Math.hypot(D.pmra,D.pmdec)/1000,F=D.frames,span=F[F.length-1].year-F[0].year;
+  if(!pm)return "No proper motion is set, so this object is treated as fixed on the sky. Anything that changes between frames is then a change in brightness or an artefact (teal pixels = masked / no data, not sky).";
+  const dist=pm*span,pa=(Math.atan2(D.pmra,D.pmdec)*180/Math.PI+360)%360;
+  const dirs=["north","north-east","east","south-east","south","south-west","west","north-west"];
+  return `Expected motion: <b>${pm.toFixed(2)}″ per year</b> toward ${dirs[Math.round(pa/45)%8]} (position angle ${pa.toFixed(0)}°). Across these frames (${mjdDate(F[0].mjd)} to ${mjdDate(F[F.length-1].mjd)}, ${span.toFixed(2)} yr) it moves <b>${dist.toFixed(1)}″ = ${(dist/D.scale).toFixed(1)} pixels</b>. Teal pixels = masked / no data.`}
 function show(i){
   if(!D)return;idx=i;$("slider").value=i;const f=D.frames[i],b=BAND[f.det];
   panel($("cv"),imgs[i],f,true);panel($("cv2"),imgs2[i],f,false);
   $("ttl").textContent=`Frame ${i+1} of ${D.frames.length}   |   detector ${f.det||"mixed"}${b?` (${b[0]}–${b[1]} µm)`:""}   |   observed ${mjdDate(f.mjd)}`;
   $("info").innerHTML=`At the target: λ ≈ ${isFinite(f.wl)?f.wl.toFixed(3):"?"} µm &middot; `+
    `flux ${f.flux.toFixed(3)} ± ${f.err.toFixed(3)} MJy/sr &middot; ${f.obsid}`;
-  state();plots()}
+  $("motion").innerHTML=motionText();state();plots()}
 function state(){$("state").innerHTML="SPACE = pause/play &nbsp;&nbsp; LEFT / RIGHT = step &nbsp;&nbsp; ("+(timer?"playing":"paused")+")"}
 
 function tab(which){$("blinkView").style.display=which==="blink"?"":"none";$("gridView").style.display=which==="grid"?"":"none";
@@ -316,7 +326,7 @@ $("slider").oninput=e=>show(+e.target.value);
 $("fps").oninput=()=>{if(timer){stop();play()}gifLink()};
 ["zoom","cross","invert"].forEach(k=>$(k).onchange=$(k).oninput=()=>show(idx));
 $("load").onclick=load;
-$("go").onclick=()=>resolve($("name").value).catch(e=>setStatus(e.message));
+$("go").onclick=()=>resolve($("name").value).then(()=>load()).catch(e=>setStatus(e.message));
 $("name").onkeydown=e=>{if(e.key==="Enter")$("go").click()};
 document.querySelectorAll(".presets button").forEach(b=>b.onclick=async()=>{
   if(busy)return;
@@ -340,12 +350,15 @@ $("survey").onchange=()=>{if(!aladin)return;const v=$("survey").value;
   try{aladin.setBaseImageLayer(v)}catch(e){try{aladin.setImageSurvey(v)}catch(_){}}};
 initAladin();
 
+// controls that change the data re-run the search; overlay boxes just redraw
 ["mode","follow","det","bin","fov","scale","maxf","pmra","pmdec","epoch"].forEach(k=>$(k).onchange=()=>{if($("ra").value)load()});
 ["gaia","wise"].forEach(k=>$(k).onchange=()=>{pushURL();overlays()});
 
+// ?name=Barnard's Star  -> look it up, then load
 const qName=new URLSearchParams(location.search).get("name");
 if(readURL()){load();links()}
 else if(qName){$("name").value=qName;resolve(qName).then(()=>load()).catch(e=>setStatus(e.message))}
+// tell a parent page (the Infrapix site) how tall we are, so an iframe can fit us exactly
 function sendHeight(){try{parent.postMessage({blinkHeight:document.documentElement.scrollHeight},"*")}catch(e){}}
 window.addEventListener("load",sendHeight);window.addEventListener("resize",sendHeight);
 if(window.ResizeObserver)new ResizeObserver(sendHeight).observe(document.body);
