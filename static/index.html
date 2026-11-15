@@ -226,6 +226,8 @@ footer p{color:var(--muted);max-width:460px;margin:0 auto 1.8rem;font-size:.93re
           <label class="chk"><input type="checkbox" id="cross" checked> Show the target circle and path</label>
           <label class="chk"><input type="checkbox" id="gaia"> Gaia DR3 stars (yellow circles)</label>
           <label class="chk"><input type="checkbox" id="wise"> AllWISE sources (magenta squares)</label>
+          <label class="chk"><input type="checkbox" id="cat"> CatWISE2020 sources (green triangles)</label>
+          <label class="chk"><input type="checkbox" id="ast"> Known asteroids and comets (orange diamonds)</label>
         </div>
       </div>
 
@@ -343,7 +345,8 @@ function enterSite(){
 const $=id=>document.getElementById(id);
 const BAND={1:[0.75,1.09],2:[1.10,1.62],3:[1.63,2.41],4:[2.42,3.82],5:[3.83,4.41],6:[4.42,5.00]};
 const SCALE=6.2;                                   // arcsec per pixel (SPHEREx native)
-let D=null,G=null,imgs=[],imgs2=[],idx=0,timer=null,busy=false,gaia=[],wise=[],resolvedName="";
+let D=null,G=null,imgs=[],imgs2=[],idx=0,timer=null,busy=false,gaia=[],wise=[],cat=[],ast={},resolvedName="";
+const astKey=m=>(Math.round(m*10)/10).toFixed(1);
 const M={l:60,b:44,t:8,r:8,cb:76};
 
 const loadImg=src=>new Promise((ok,bad)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>bad(new Error("image failed to load"));i.src=src});
@@ -385,7 +388,7 @@ async function load(){
     D=await jget("/api/frames?"+params());
     imgs=await Promise.all(D.frames.map(f=>loadImg(f.png)));
     imgs2=await Promise.all(D.frames.map(f=>loadImg(f.diff)));
-    gaia=[];wise=[];
+    gaia=[];wise=[];cat=[];ast={};
     $("blinkPanel").style.display="block";$("slider").max=imgs.length-1;idx=0;show(0);
     setStatus(`${imgs.length} frames shown (${D.total} exposures found around this position).`);
     $("blinkPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -394,10 +397,16 @@ async function load(){
   $("loadBtn").disabled=false;busy=false}
 
 async function overlays(){
-  if(!D)return;const q=`ra=${D.ra}&dec=${D.dec}&fov=${D.fov}`;
-  gaia=$("gaia").checked?await jget("/api/gaia?"+q).catch(()=>[]):[];
-  wise=$("wise").checked?await jget("/api/wise?"+q).catch(()=>[]):[];
-  show(idx)}
+  if(!D)return;const q=`ra=${D.ra}&dec=${D.dec}&fov=${D.fov}`,fails=[];
+  const get=async(on,url,label,empty)=>{if(!on)return empty;try{return await jget(url)}catch(e){fails.push(label);return empty}};
+  const mjds=[...new Set(D.frames.map(f=>astKey(f.mjd)))].join(",");
+  [gaia,wise,cat,ast]=await Promise.all([get($("gaia").checked,"/api/gaia?"+q,"Gaia",[]),get($("wise").checked,"/api/wise?"+q,"AllWISE",[]),
+    get($("cat").checked,"/api/catwise?"+q,"CatWISE",[]),get($("ast").checked,`/api/asteroids?${q}&mjds=${mjds}`,"asteroids",{})]);
+  show(idx);
+  let m=`${imgs.length} frames shown (${D.total} exposures found around this position).`;
+  if($("ast").checked&&!fails.includes("asteroids")){const n=new Set(Object.values(ast).flat().map(o=>o.name)).size;m+=` ${n} known asteroid${n==1?"":"s"}/comet${n==1?"":"s"} in the field.`}
+  if(fails.length)m+=` Overlay unavailable: ${fails.join(", ")} (open /api/diag to see why).`;
+  setStatus(m,fails.length>0)}
 
 // ---- drawing ----
 function prep(cv,W,H){const d=window.devicePixelRatio||1;cv.width=Math.round(W*d);cv.height=Math.round(H*d);
@@ -443,6 +452,14 @@ function panel(cv,img,f,isDiff){
     const dE=((g.ra-f.cra)*cd*3600)+g.pmra*dt/1000,dN=((g.dec-f.cdec)*3600)+g.pmdec*dt/1000;
     const x=cx-dE/SCALE*z,y=cy-dN/SCALE*z;if(x<M.l||y<M.t||x>M.l+w||y>M.t+w)return;
     c.strokeStyle="#e040fb";c.lineWidth=1.4;c.strokeRect(x-5,y-5,10,10)});
+  cat.forEach(g=>{if(g.ra==null)return;const dt=f.year-2015.405;
+    const dE=((g.ra-f.cra)*cd*3600)+g.pmra*dt/1000,dN=((g.dec-f.cdec)*3600)+g.pmdec*dt/1000;
+    const x=cx-dE/SCALE*z,y=cy-dN/SCALE*z;if(x<M.l||y<M.t||x>M.l+w||y>M.t+w)return;
+    c.strokeStyle="#a3e635";c.lineWidth=1.4;c.beginPath();c.moveTo(x,y-6);c.lineTo(x+6,y+5);c.lineTo(x-6,y+5);c.closePath();c.stroke()});
+  (ast[astKey(f.mjd)]||[]).forEach(o=>{const dE=(o.ra-f.cra)*cd*3600,dN=(o.dec-f.cdec)*3600;
+    const x=cx-dE/SCALE*z,y=cy-dN/SCALE*z;if(x<M.l||y<M.t||x>M.l+w||y>M.t+w)return;
+    c.strokeStyle=c.fillStyle="#ff7a45";c.lineWidth=1.6;c.beginPath();c.moveTo(x,y-7);c.lineTo(x+7,y);c.lineTo(x,y+7);c.lineTo(x-7,y);c.closePath();c.stroke();
+    c.font="11px Inter,sans-serif";c.textAlign="left";c.fillText(o.name+(o.mag!=null?" · V"+(+o.mag).toFixed(1):""),x+10,y+4)});
   const bar=60/SCALE*z;c.strokeStyle=c.fillStyle="#fff";c.lineWidth=2;
   c.beginPath();c.moveTo(M.l+10,M.t+w-12);c.lineTo(M.l+10+bar,M.t+w-12);c.stroke();
   c.font="11px Inter,sans-serif";c.textAlign="left";c.fillText("60″",M.l+10,M.t+w-17);
@@ -518,7 +535,7 @@ $("exampleBtn").onclick=()=>go("Barnard's Star");
 $("findBtn").onclick=()=>{const n=$("objName").value.trim();if(n)resolveName(n).catch(e=>setStatus("Error: "+e.message,true))};
 $("objName").onkeydown=e=>{if(e.key==="Enter")load()};
 ["fov","maxf","det","follow","cross"].forEach(k=>$(k).onchange=()=>{if(k==="cross"){show(idx);return}if(D&&$("ra").value)load()});
-["gaia","wise"].forEach(k=>$(k).onchange=()=>overlays());
+["gaia","wise","cat","ast"].forEach(k=>$(k).onchange=()=>overlays());
 $("linkBtn").onclick=()=>{pushURL();try{navigator.clipboard.writeText(location.href);setStatus("Link copied. Anyone can open it to see the same view.")}catch(e){setStatus(location.href)}};
 $("gif").onclick=()=>{if(!$("ra").value){setStatus("Load an object first.",true);return false}pushURL()};
 

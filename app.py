@@ -167,6 +167,7 @@ def resolve(name: str, epoch: float = 2026.0):
     Works for any SIMBAD object. pm_found=False means no proper motion was available."""
     got = KNOWN_TARGETS.get(" ".join(name.lower().split()))
     pm_found = got is not None
+    pm_source = "built-in table" if pm_found else None
     if got is None:
         row = None
         try:
@@ -186,11 +187,17 @@ def resolve(name: str, epoch: float = 2026.0):
             row = (pos[0], pos[1], None, None)
         ra, dec, pmra, pmdec = float(row[0]), float(row[1]), _num(row[2]), _num(row[3])
         pm_found = pmra is not None and pmdec is not None
+        pm_source = "SIMBAD" if pm_found else None
+        if not pm_found:                         # SIMBAD down or silent: ask Gaia / CatWISE instead
+            alt = _catalog_pm(ra, dec)
+            if alt:
+                pmra, pmdec, pm_source = alt
+                pm_found = True
         got = (ra, dec, pmra or 0.0, pmdec or 0.0)
     ra, dec, pmra, pmdec = got
     ra_e, dec_e = position_at(ra, dec, pmra, pmdec, 2000.0, epoch)
     return dict(ra=ra_e, dec=dec_e, ra2000=ra, dec2000=dec, pmra=pmra, pmdec=pmdec,
-                epoch=epoch, pm_found=pm_found)
+                epoch=epoch, pm_found=pm_found, pm_source=pm_source)
 
 
 # ================================================================= 3. SEARCH
@@ -606,6 +613,86 @@ def gif(ra: float, dec: float,
                     headers={"Content-Disposition": "attachment; filename=spherex_blink.gif"})
 
 
+GAIA_TAP = "https://gea.esac.esa.int/tap-server/tap"
+SKYBOT_URL = "https://ssp.imcce.fr/webservices/skybot/api/conesearch.php"
+
+
+def _cone_table(url, table, cols, ra, dec, r_deg, where="", order=None, top=600):
+    """ADQL cone search on a TAP service (IRSA, ESA Gaia archive...). Returns an astropy Table."""
+    import pyvo
+    q = (f"SELECT TOP {top} {', '.join(cols)} FROM {table} "
+         f"WHERE 1 = CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {ra}, {dec}, {r_deg})) {where}"
+         + (f" ORDER BY {order}" if order else ""))
+    return pyvo.dal.TAPService(url).search(q).to_table()
+
+
+def _c(t, name, i):
+    """Value of column `name` (any capitalisation) in row i, or None if blank."""
+    key = next((c for c in t.colnames if c.lower() == name.lower()), None)
+    if key is None or np.ma.is_masked(t[key][i]):
+        return None
+    try:
+        v = float(t[key][i])
+    except (TypeError, ValueError):
+        return None
+    return v if np.isfinite(v) else None
+
+
+def _name(t, name, i):
+    key = next((c for c in t.colnames if c.lower() == name.lower()), None)
+    return str(t[key][i]) if key else ""
+
+
+def _gaia_rows(ra, dec, r_deg, gmax=19.0):
+    t = _cone_table(GAIA_TAP, "gaiadr3.gaia_source",
+                    ["source_id", "ra", "dec", "pmra", "pmdec", "phot_g_mean_mag"], ra, dec, r_deg,
+                    f"AND phot_g_mean_mag < {gmax}", order="phot_g_mean_mag")
+    return [dict(id=_name(t, "source_id", i),
+                 ra=_c(t, "ra", i), dec=_c(t, "dec", i),
+                 pmra=_c(t, "pmra", i) or 0.0, pmdec=_c(t, "pmdec", i) or 0.0,
+                 g=_c(t, "phot_g_mean_mag", i)) for i in range(len(t))]
+
+
+def _allwise_rows(ra, dec, r_deg):
+    t = _cone_table(TAP_URL, "allwise_p3as_psd",
+                    ["designation", "ra", "dec", "pmra", "pmdec", "w1mpro", "w2mpro"], ra, dec, r_deg,
+                    order="w1mpro")
+    return [dict(id=_name(t, "designation", i), ra=_c(t, "ra", i), dec=_c(t, "dec", i),
+                 pmra=_c(t, "pmra", i) or 0.0, pmdec=_c(t, "pmdec", i) or 0.0,
+                 w1=_c(t, "w1mpro", i), w2=_c(t, "w2mpro", i)) for i in range(len(t))]
+
+
+def _catwise_rows(ra, dec, r_deg):
+    # CatWISE2020: epoch 2015.405; proper motions are in ARCSEC/yr (VERIFY: whether pmra includes cos dec)
+    t = _cone_table(TAP_URL, "catwise_2020",
+                    ["source_name", "ra", "dec", "pmra", "pmdec", "w1mpro", "w2mpro"], ra, dec, r_deg,
+                    order="w1mpro")
+    return [dict(id=_name(t, "source_name", i), ra=_c(t, "ra", i), dec=_c(t, "dec", i),
+                 pmra=(_c(t, "pmra", i) or 0.0) * 1000.0, pmdec=(_c(t, "pmdec", i) or 0.0) * 1000.0,
+                 w1=_c(t, "w1mpro", i), w2=_c(t, "w2mpro", i)) for i in range(len(t))]
+
+
+def _catalog_pm(ra, dec):
+    """Proper motion from Gaia DR3, else CatWISE2020, for a J2000 position (when SIMBAD is unreachable).
+    Candidates are moved back to J2000 and must land within 3 arcsec of the target."""
+    for label, rows, epoch in (("Gaia DR3", lambda: _gaia_rows(ra, dec, 0.02, 20.0), 2016.0),
+                               ("CatWISE2020", lambda: _catwise_rows(ra, dec, 0.02), 2015.405)):
+        try:
+            best = None
+            for r in rows():
+                if r["ra"] is None or r["dec"] is None:
+                    continue
+                r0, d0 = position_at(r["ra"], r["dec"], r["pmra"], r["pmdec"], epoch, 2000.0)
+                sep = np.hypot((r0 - ra) * np.cos(np.radians(dec)), d0 - dec) * 3600
+                if sep < 3.0 and (best is None or sep < best[0]):
+                    best = (sep, r["pmra"], r["pmdec"])
+            if best:
+                return best[1], best[2], label
+        except Exception as e:  # noqa: BLE001
+            log.warning("%s proper-motion lookup failed: %s", label, str(e)[:200])
+    return None
+
+
 def _vizier(catalog, columns, ra, dec, radius_deg, extra=None):
     from astroquery.vizier import Vizier, conf
     errors = []
@@ -628,7 +715,11 @@ def _val(t, col, i):
 
 @app.get("/api/gaia")
 def gaia(ra: float, dec: float, fov: float = 0.05, gmax: float = 19.0):
-    """Gaia DR3 stars (epoch 2016.0) with proper motions, via VizieR."""
+    """Gaia DR3 stars (epoch 2016.0) with proper motions. ESA Gaia archive first, VizieR as backup."""
+    try:
+        return _gaia_rows(ra, dec, fov * 0.75, gmax)
+    except Exception as e:  # noqa: BLE001
+        log.warning("Gaia archive failed (%s); trying VizieR", str(e)[:200])
     t = _vizier("I/355/gaiadr3", ["Source", "RA_ICRS", "DE_ICRS", "pmRA", "pmDE", "Gmag"],
                 ra, dec, fov * 0.75, dict(column_filters={"Gmag": f"<{gmax}"}))
     if t is None:
@@ -640,7 +731,11 @@ def gaia(ra: float, dec: float, fov: float = 0.05, gmax: float = 19.0):
 
 @app.get("/api/wise")
 def wise(ra: float, dec: float, fov: float = 0.05):
-    """AllWISE sources (epoch 2010.5) with proper motions, via VizieR."""
+    """AllWISE sources (epoch 2010.5) with proper motions. IRSA first, VizieR as backup."""
+    try:
+        return _allwise_rows(ra, dec, fov * 0.75 + 0.03)
+    except Exception as e:  # noqa: BLE001
+        log.warning("IRSA AllWISE failed (%s); trying VizieR", str(e)[:200])
     t = _vizier("II/328/allwise",
                 ["AllWISE", "RAJ2000", "DEJ2000", "W1mag", "W2mag", "pmRA", "pmDE"],
                 ra, dec, fov * 0.75 + 0.03)
@@ -649,6 +744,93 @@ def wise(ra: float, dec: float, fov: float = 0.05):
     return [dict(id=str(t["AllWISE"][i]), ra=_val(t, "RAJ2000", i), dec=_val(t, "DEJ2000", i),
                  pmra=_val(t, "pmRA", i) or 0.0, pmdec=_val(t, "pmDE", i) or 0.0,
                  w1=_val(t, "W1mag", i), w2=_val(t, "W2mag", i)) for i in range(len(t))]
+
+
+@app.get("/api/catwise")
+def catwise(ra: float, dec: float, fov: float = 0.05):
+    """CatWISE2020 sources (epoch 2015.405) with proper motions, from IRSA. Deeper and newer than AllWISE."""
+    try:
+        return _catwise_rows(ra, dec, fov * 0.75 + 0.03)
+    except Exception as e:  # noqa: BLE001
+        log.warning("IRSA CatWISE failed: %s", str(e)[:300])
+        raise HTTPException(502, "CatWISE (IRSA) not reachable: " + str(e)[:120])
+
+
+@lru_cache(maxsize=512)
+def _skybot(ra, dec, radius_arcsec, jd):
+    r = requests.get(SKYBOT_URL, timeout=40, params={
+        "-ep": f"{jd:.5f}", "-ra": ra, "-dec": dec, "-rs": min(36000, max(1, radius_arcsec)),
+        "-mime": "json", "-output": "basic", "-observer": "500", "-filter": "120",
+        "-objFilter": "111", "-refsys": "EQJ2000", "-from": "infrapix"})
+    r.raise_for_status()
+    try:
+        data = r.json()
+    except ValueError:                                   # "no object found" comes back as plain text
+        return ()
+    if isinstance(data, dict):
+        data = data.get("data") or data.get("objects") or []
+    out = []
+    for d in data:
+        try:
+            c = SkyCoord(str(d["RA (hour)"]), str(d["DEC (deg)"]), unit=(u.hourangle, u.deg))
+            name = f"{d.get('Num', '')} {d.get('Name', '')}".strip(" -")
+            out.append(dict(name=name or "unnamed", ra=float(c.ra.deg), dec=float(c.dec.deg),
+                            mag=d.get("VMag (mag)"), cls=d.get("Class"),
+                            rate=float(np.hypot(float(d.get("dRA (arcsec/h)", 0) or 0),
+                                                float(d.get("dDEC (arcsec/h)", 0) or 0)))))
+        except Exception:  # noqa: BLE001
+            continue
+    return tuple(out)
+
+
+@app.get("/api/asteroids")
+def asteroids(ra: float, dec: float, fov: float = 0.05,
+              mjds: str = Query(..., description="comma-separated MJDs, one per frame")):
+    """Known asteroids, comets and planets in the field on each frame's date (SkyBoT, IMCCE).
+    Returns {mjd_key: [objects]}; an object that is NOT listed here is not a known solar-system body."""
+    keys = [k for k in dict.fromkeys(m.strip() for m in mjds.split(",")) if k][:60]
+    radius = fov * 0.75 * 3600
+
+    def one(k):
+        try:
+            return k, list(_skybot(round(ra, 5), round(dec, 5), round(radius, 1), float(k) + 2400000.5))
+        except Exception as e:  # noqa: BLE001
+            log.warning("SkyBoT failed for MJD %s: %s", k, str(e)[:200])
+            return k, None
+    with ThreadPoolExecutor(4) as ex:
+        res = dict(ex.map(one, keys))
+    if res and all(v is None for v in res.values()):
+        raise HTTPException(502, "SkyBoT (IMCCE) not reachable")
+    return {k: (v or []) for k, v in res.items()}
+
+
+@app.get("/api/diag")
+def diag():
+    """Open http://localhost:8000/api/diag to see which outside services your network can reach."""
+    tests = {
+        "IRSA TAP (SPHEREx, AllWISE, CatWISE)": lambda: requests.get(TAP_URL + "/availability", timeout=20),
+        "ESA Gaia archive": lambda: requests.get(GAIA_TAP + "/availability", timeout=20),
+        "SkyBoT (asteroids)": lambda: requests.get(SKYBOT_URL, timeout=30, params={
+            "-ep": "now", "-ra": 148.67, "-dec": 16.38, "-rs": 600, "-mime": "json", "-output": "basic",
+            "-from": "infrapix"}),
+        "CDS Sesame (name lookup)": lambda: requests.get(
+            "https://cds.unistra.fr/cgi-bin/nph-sesame/-oxp/S?M51", timeout=20),
+        "SIMBAD TAP": lambda: requests.get(
+            "https://simbad.cds.unistra.fr/simbad/sim-tap/availability", timeout=20),
+        "VizieR": lambda: requests.get("https://vizier.cds.unistra.fr/viz-bin/votable?-source=I/355/gaiadr3"
+                                       "&-c=202.47,47.19&-c.rs=5&-out.max=1", timeout=20),
+    }
+
+    def run(item):
+        name, fn = item
+        t0 = time.time()
+        try:
+            r = fn()
+            return name, dict(ok=r.status_code < 400, status=r.status_code, seconds=round(time.time() - t0, 1))
+        except Exception as e:  # noqa: BLE001
+            return name, dict(ok=False, status=None, error=str(e)[:160], seconds=round(time.time() - t0, 1))
+    with ThreadPoolExecutor(6) as ex:
+        return dict(ex.map(run, tests.items()))
 
 
 @app.get("/api/health")

@@ -54,7 +54,7 @@ const HTML = `
     <span class="bl-pm"><input id="blPmra" type="number" step="any" placeholder="RA mas/yr" /><input id="blPmdec" type="number" step="any" placeholder="Dec mas/yr" /></span>
   </label>
   <div class="bl-switches">
-    ${sw('blFollow', 'Follow object', true)}${sw('blCross', 'Mark target', true)}${sw('blGaia', 'Gaia stars', false)}${sw('blWise', 'AllWISE', false)}
+    ${sw('blFollow', 'Follow object', true)}${sw('blCross', 'Mark target', true)}${sw('blGaia', 'Gaia stars', false)}${sw('blWise', 'AllWISE', false)}${sw('blCat', 'CatWISE', false)}${sw('blAst', 'Known asteroids', false)}
   </div>
 </div>
 
@@ -73,6 +73,7 @@ const HTML = `
       <button class="pill" id="blLink" type="button">Copy link</button>
       <a class="pill" id="blGif" href="#" download="spherex_blink.gif">GIF</a>
     </div>
+    <p class="bl-note bl-legend">Overlays: <span style="color:#ffbe00">○ Gaia</span> · <span style="color:#e040fb">□ AllWISE</span> · <span style="color:#a3e635">△ CatWISE</span> · <span style="color:#ff7a45">◇ known asteroid or comet</span>. They are drawn where each catalogue object should be on that frame's date. A mover with no marker is not a known object.</p>
     <p id="blFrame" class="bl-frame"></p>
     <p id="blInfo" class="bl-note"></p>
     <p id="blMotion" class="bl-note"></p>
@@ -93,7 +94,7 @@ async function jget(url) {
 const fmtDeg = (v, n = 4) => `${v.toFixed(n)}°`;
 
 let root, q, D = null, G = null, imgs = [], imgs2 = [], idx = 0, timer = null;
-let gaia = [], wise = [], resolved = '', token = 0, target = { ra: null, dec: null };
+let gaia = [], wise = [], cat = [], ast = {}, astKey = (m) => (Math.round(m * 10) / 10).toFixed(1), resolved = '', token = 0, target = { ra: null, dec: null };
 let onOpenChange = () => {};
 
 const $ = (id) => root.querySelector(`#${id}`);
@@ -162,7 +163,7 @@ async function load() {
     const a = await Promise.all(d.frames.map((f) => loadImg(f.png)));
     const b = await Promise.all(d.frames.map((f) => loadImg(f.diff)));
     if (my !== token) return;
-    D = d; imgs = a; imgs2 = b; gaia = []; wise = [];
+    D = d; imgs = a; imgs2 = b; gaia = []; wise = []; cat = []; ast = {};
     $('blTransport').hidden = false;
     $('blSlider').max = imgs.length - 1; idx = 0; show(0);
     setStatus(`${imgs.length} frames shown (${D.total} exposures found around this position).`);
@@ -171,13 +172,30 @@ async function load() {
   } catch (e) { if (my === token) setStatus(`Error: ${e.message}`, true); }
 }
 
+function baseStatus() { return `${imgs.length} frames shown (${D.total} exposures found around this position).`; }
 async function overlays(my = token) {
   if (!D) return;
-  const qs = `ra=${D.ra}&dec=${D.dec}&fov=${D.fov}`;
-  const g = $('blGaia').checked ? await jget(`api/gaia?${qs}`).catch(() => []) : [];
-  const w = $('blWise').checked ? await jget(`api/wise?${qs}`).catch(() => []) : [];
+  const qs = `ra=${D.ra}&dec=${D.dec}&fov=${D.fov}`, fails = [];
+  const get = async (on, url, label, empty) => {
+    if (!on) return empty;
+    try { return await jget(url); } catch (e) { fails.push(label); return empty; }
+  };
+  const mjds = [...new Set(D.frames.map((f) => astKey(f.mjd)))].join(',');
+  const [g, w, c, a] = await Promise.all([
+    get($('blGaia').checked, `api/gaia?${qs}`, 'Gaia', []),
+    get($('blWise').checked, `api/wise?${qs}`, 'AllWISE', []),
+    get($('blCat').checked, `api/catwise?${qs}`, 'CatWISE', []),
+    get($('blAst').checked, `api/asteroids?${qs}&mjds=${mjds}`, 'asteroids', {}),
+  ]);
   if (my !== token) return;
-  gaia = g; wise = w; show(idx);
+  gaia = g; wise = w; cat = c; ast = a; show(idx);
+  let msg = baseStatus();
+  if ($('blAst').checked && !fails.includes('asteroids')) {
+    const names = new Set(Object.values(ast).flat().map((o) => o.name));
+    msg += ` ${names.size} known asteroid${names.size === 1 ? '' : 's'}/comet${names.size === 1 ? '' : 's'} in the field.`;
+  }
+  if (fails.length) msg += ` Overlay unavailable: ${fails.join(', ')} (open /api/diag to see why).`;
+  setStatus(msg, fails.length > 0);
 }
 
 function prep(cv, W, H) {
@@ -238,6 +256,19 @@ function panel(cv, img, f, isDiff) {
     const dE = (g.ra - f.cra) * cd * 3600 + g.pmra * dt / 1000, dN = (g.dec - f.cdec) * 3600 + g.pmdec * dt / 1000;
     const x = cx - dE / SCALE * z, y = cy - dN / SCALE * z; if (!inside(x, y)) return;
     c.strokeStyle = '#e040fb'; c.lineWidth = 1.4; c.strokeRect(x - 5, y - 5, 10, 10);
+  });
+  cat.forEach((g) => {
+    if (g.ra == null) return; const dt = f.year - 2015.405;
+    const dE = (g.ra - f.cra) * cd * 3600 + g.pmra * dt / 1000, dN = (g.dec - f.cdec) * 3600 + g.pmdec * dt / 1000;
+    const x = cx - dE / SCALE * z, y = cy - dN / SCALE * z; if (!inside(x, y)) return;
+    c.strokeStyle = '#a3e635'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x, y - 6); c.lineTo(x + 6, y + 5); c.lineTo(x - 6, y + 5); c.closePath(); c.stroke();
+  });
+  (ast[astKey(f.mjd)] || []).forEach((o) => {
+    const dE = (o.ra - f.cra) * cd * 3600, dN = (o.dec - f.cdec) * 3600;
+    const x = cx - dE / SCALE * z, y = cy - dN / SCALE * z; if (!inside(x, y)) return;
+    c.strokeStyle = '#ff7a45'; c.fillStyle = '#ff7a45'; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(x, y - 7); c.lineTo(x + 7, y); c.lineTo(x, y + 7); c.lineTo(x - 7, y); c.closePath(); c.stroke();
+    c.font = `11px ${FONT}`; c.textAlign = 'left'; c.fillText(`${o.name}${o.mag != null ? ` · V${(+o.mag).toFixed(1)}` : ''}`, x + 10, y + 4);
   });
   const bar = 60 / SCALE * z; c.strokeStyle = c.fillStyle = '#fff'; c.lineWidth = 2;
   c.beginPath(); c.moveTo(M.l + 10, M.t + w - 12); c.lineTo(M.l + 10 + bar, M.t + w - 12); c.stroke();
@@ -367,7 +398,7 @@ export function initBlink({ onToggle } = {}) {
   $('blCross').onchange = () => show(idx);
   for (const id of ['blFov', 'blMax', 'blDet', 'blFollow']) $(id).onchange = () => { if (target.ra != null) (root.querySelector('#blGrid').hidden ? load() : loadGrid()); };
   for (const id of ['blPmra', 'blPmdec']) $(id).onchange = () => { if (target.ra != null) load(); };
-  for (const id of ['blGaia', 'blWise']) $(id).onchange = () => overlays();
+  for (const id of ['blGaia', 'blWise', 'blCat', 'blAst']) $(id).onchange = () => overlays();
   $('blLink').onclick = () => {
     pushURL();
     try { navigator.clipboard.writeText(location.href); setStatus('Link copied. Anyone can open it to see the same view.'); } catch { setStatus(location.href); }

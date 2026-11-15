@@ -16,6 +16,12 @@ Open http://localhost:8000 for the website, and http://localhost:8000/explorer.h
 - Or press the blink button on the time bar and type a name, or `RA, Dec` in degrees.
 - Space plays/pauses, ← → step frames, Esc closes. **Copy link** shares the exact view.
 
+## Overlays and data sources
+- **Gaia DR3** (ESA Gaia archive), **AllWISE** and **CatWISE2020** (NASA/IPAC IRSA), each moved to the frame's date using its proper motion.
+- **Known asteroids and comets** (SkyBoT, IMCCE): where every catalogued solar-system object should be on each frame's date. A mover with no marker is not a known object.
+- Proper motion for any name comes from SIMBAD, or from Gaia/CatWISE when SIMBAD is unreachable.
+- Open `/api/diag` to see which outside services your network can reach.
+
 ## Files
 - `app.py` – backend (IRSA cutouts, proper motion, difference frames, overlays) and static file server
 - `static/index.html` – the Infrapix website (splash, blink tool, challenge, how it works, team)
